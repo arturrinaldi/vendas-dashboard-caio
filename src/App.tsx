@@ -14,10 +14,7 @@ import ToastContainer from './components/ToastContainer';
 const Header = ({ view, setView }: any) => (
   <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
     <div className="flex items-center gap-4">
-      <button className="p-2 hover:bg-surface-container-high rounded-full transition-colors">
-        <Menu className="w-6 h-6 text-primary" />
-      </button>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 pl-2">
         <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
           <span className="font-headline font-black text-surface text-xs">C</span>
         </div>
@@ -27,7 +24,7 @@ const Header = ({ view, setView }: any) => (
     
     <nav className="hidden md:flex items-center gap-8">
       {[
-        { id: 'dashboard', label: 'Estúdio' },
+        { id: 'dashboard', label: 'Visão Geral' },
         { id: 'pdv', label: 'Vender' },
         { id: 'products', label: 'Estoque' },
         { id: 'expenses', label: 'Custos' },
@@ -349,10 +346,13 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }) => {
       <AnimatePresence>
         {isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setIsOpen(false)}>
+                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()}
                         className="bg-surface-container-high w-full max-w-md p-8 rounded-2xl border border-tertiary/30 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
-              <h2 className="font-headline font-bold text-2xl mb-8">Novo Produto</h2>
+              <div className="flex justify-between items-start mb-8">
+                <h2 className="font-headline font-bold text-2xl">Novo Produto</h2>
+                <button onClick={() => setIsOpen(false)} type="button" className="text-on-surface-variant hover:text-error transition-colors p-1"><X size={24}/></button>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Nome do Item</label>
@@ -450,10 +450,13 @@ const Expenses = ({ expenses, addExpense, deleteExpense }) => {
       <AnimatePresence>
         {isOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setIsOpen(false)}>
+                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()}
                         className="bg-surface-container-high w-full max-w-md p-8 rounded-2xl border border-error/30 shadow-[0_20px_60px_rgba(236,124,138,0.2)]">
-              <h2 className="font-headline font-bold text-2xl mb-8">Nova Despesa</h2>
+              <div className="flex justify-between items-start mb-8">
+                <h2 className="font-headline font-bold text-2xl">Nova Despesa</h2>
+                <button onClick={() => setIsOpen(false)} type="button" className="text-on-surface-variant hover:text-error transition-colors p-1"><X size={24}/></button>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Descrição do Custo</label>
@@ -542,7 +545,7 @@ const SalesHistory = ({ sales, deleteSale }) => (
 const BottomNav = ({ view, setView }: any) => (
   <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-2 pb-6 pt-4 backdrop-blur-3xl bg-surface-container-low/95 border-t border-outline-variant/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] z-[100]">
     {[
-      { id: 'dashboard', label: 'Estúdio', icon: LayoutDashboard },
+      { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
       { id: 'pdv', label: 'Vender', icon: ShoppingCart },
       { id: 'products', label: 'Estoque', icon: Palette },
       { id: 'expenses', label: 'Custos', icon: CreditCard },
