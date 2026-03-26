@@ -7,20 +7,22 @@ export const useStore = () => {
   const [products, setProducts] = useState([]);
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadLocalData = () => {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) {
-      const { products, sales, expenses } = JSON.parse(data);
+      const { products, sales, expenses, events } = JSON.parse(data);
       setProducts(products || []);
       setSales(sales || []);
       setExpenses(expenses || []);
+      setEvents(events || []);
     }
   };
 
-  const saveLocalData = (p, s, e) => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e }));
+  const saveLocalData = (p, s, e, ev) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev }));
   };
 
   const fetchData = useCallback(async () => {
@@ -32,17 +34,19 @@ export const useStore = () => {
     }
 
     try {
-      const [pRes, sRes, eRes] = await Promise.all([
+      const [pRes, sRes, eRes, evRes] = await Promise.all([
         supabase.from('products').select('*').order('name'),
         supabase.from('sales').select('*').order('date', { ascending: false }),
-        supabase.from('expenses').select('*').order('date', { ascending: false })
+        supabase.from('expenses').select('*').order('date', { ascending: false }),
+        supabase.from('events').select('*').order('date', { ascending: true })
       ]);
 
       if (!pRes.error) setProducts(pRes.data || []);
       if (!sRes.error) setSales(sRes.data || []);
       if (!eRes.error) setExpenses(eRes.data || []);
+      if (evRes && !evRes.error) setEvents(evRes.data || []);
       
-      saveLocalData(pRes.data, sRes.data, eRes.data);
+      saveLocalData(pRes.data, sRes.data, eRes.data, evRes ? evRes.data : []);
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase:', err);
       loadLocalData();
@@ -65,7 +69,7 @@ export const useStore = () => {
     
     setProducts(prev => {
       const next = [...prev, newProduct];
-      saveLocalData(next, sales, expenses);
+      saveLocalData(next, sales, expenses, events);
       return next;
     });
     return newProduct;
@@ -77,7 +81,7 @@ export const useStore = () => {
     }
     setProducts(prev => {
       const next = prev.map(p => p.id === id ? { ...p, ...changes } : p);
-      saveLocalData(next, sales, expenses);
+      saveLocalData(next, sales, expenses, events);
       return next;
     });
   };
@@ -88,7 +92,7 @@ export const useStore = () => {
     }
     setProducts(prev => {
       const next = prev.filter(p => p.id !== id);
-      saveLocalData(next, sales, expenses);
+      saveLocalData(next, sales, expenses, events);
       return next;
     });
   };
@@ -124,7 +128,7 @@ export const useStore = () => {
 
     setSales(prev => {
       const next = [sale, ...prev];
-      saveLocalData(products, next, expenses);
+      saveLocalData(products, next, expenses, events);
       return next;
     });
 
@@ -134,7 +138,7 @@ export const useStore = () => {
         const item = items.find(i => i.productId === p.id);
         return item ? { ...p, stock: Math.max(0, (p.stock || 0) - item.qty) } : p;
       });
-      saveLocalData(next, sales, expenses);
+      saveLocalData(next, sales, expenses, events);
       return next;
     });
   };
@@ -145,7 +149,7 @@ export const useStore = () => {
     }
     setSales(prev => {
       const next = prev.filter(s => s.id !== id);
-      saveLocalData(products, next, expenses);
+      saveLocalData(products, next, expenses, events);
       return next;
     });
   };
@@ -162,7 +166,7 @@ export const useStore = () => {
     }
     setExpenses(prev => {
       const next = [newExpense, ...prev];
-      saveLocalData(products, sales, next);
+      saveLocalData(products, sales, next, events);
       return next;
     });
   };
@@ -173,7 +177,35 @@ export const useStore = () => {
     }
     setExpenses(prev => {
       const next = prev.filter(e => e.id !== id);
-      saveLocalData(products, sales, next);
+      saveLocalData(products, sales, next, events);
+      return next;
+    });
+  };
+
+  // Events
+  const addEvent = async (event) => {
+    const newEvent = {
+      ...event,
+      id: crypto.randomUUID(),
+      date: event.date || new Date().toISOString(),
+    };
+    if (supabase) {
+      await supabase.from('events').insert([newEvent]);
+    }
+    setEvents(prev => {
+      const next = [...prev, newEvent];
+      saveLocalData(products, sales, expenses, next);
+      return next;
+    });
+  };
+
+  const deleteEvent = async (id) => {
+    if (supabase) {
+      await supabase.from('events').delete().eq('id', id);
+    }
+    setEvents(prev => {
+      const next = prev.filter(e => e.id !== id);
+      saveLocalData(products, sales, expenses, next);
       return next;
     });
   };
@@ -182,6 +214,7 @@ export const useStore = () => {
     products,
     sales,
     expenses,
+    events,
     loading,
     addProduct,
     updateProduct,
@@ -190,6 +223,8 @@ export const useStore = () => {
     deleteSale,
     addExpense,
     deleteExpense,
+    addEvent,
+    deleteEvent,
     refresh: fetchData
   };
 };

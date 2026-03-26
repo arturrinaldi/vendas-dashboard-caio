@@ -10,6 +10,7 @@ import { cn } from '@/src/lib/utils';
 import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
+import logoUrl from './assets/logo.png';
 
 const Header = ({ view, setView }: any) => (
   <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
@@ -28,7 +29,8 @@ const Header = ({ view, setView }: any) => (
         { id: 'pdv', label: 'Vender' },
         { id: 'products', label: 'Estoque' },
         { id: 'expenses', label: 'Custos' },
-        { id: 'history', label: 'Histórico' }
+        { id: 'history', label: 'Histórico' },
+        { id: 'calendar', label: 'Agenda' }
       ].map((item) => (
         <button 
           key={item.id} 
@@ -44,8 +46,8 @@ const Header = ({ view, setView }: any) => (
     </nav>
 
     <div className="flex items-center gap-4">
-      <div className="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/20">
-        <img src="https://picsum.photos/seed/artist/100/100" alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div className="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/20 bg-surface flex items-center justify-center">
+        <img src={logoUrl} alt="Logo" className="w-[85%] h-[85%] object-contain" />
       </div>
     </div>
   </header>
@@ -124,9 +126,9 @@ const Dashboard = ({ products, sales, expenses }: any) => {
   }, [products, sales, currentMonth]);
 
   const recentActivity = useMemo(() => {
-    const s = sales.map(s => ({ type: 'sale', id: s.id, date: s.date, title: `Venda: ${s.items.map(i=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
-    const e = expenses.map(e => ({ type: 'expense', id: e.id, date: e.date, title: `Custo: ${e.description}`, amount: -e.amount, icon: Wallet, color: 'text-error', bgColor: 'bg-error/10' }));
-    return [...s, ...e].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 6);
+    const s = sales.map((s: any) => ({ type: 'sale', id: s.id, date: s.date, title: `Venda: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
+    const e = expenses.map((e: any) => ({ type: 'expense', id: e.id, date: e.date, title: `Custo: ${e.description}`, amount: Number(e.amount) * -1, icon: Wallet, color: 'text-error', bgColor: 'bg-error/10' }));
+    return [...s, ...e].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
   }, [sales, expenses]);
 
   return (
@@ -542,25 +544,116 @@ const SalesHistory = ({ sales, deleteSale }) => (
   </div>
 );
 
+const CalendarAgenda = ({ events, addEvent, deleteEvent }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [formData, setFormData] = useState({ title: '', observation: '', date: new Date().toISOString().split('T')[0] });
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    addEvent({ ...formData });
+    setIsOpen(false);
+    setFormData({ title: '', observation: '', date: new Date().toISOString().split('T')[0] });
+    addToast('Evento agendado!', 'success');
+  };
+
+  return (
+    <div className="pb-32 animate-slide-up space-y-8 max-w-4xl mx-auto">
+      <header className="flex justify-between items-end">
+        <div>
+          <h3 className="font-headline text-3xl font-black text-primary uppercase tracking-tighter">Agenda</h3>
+          <p className="font-label text-xs text-tertiary uppercase tracking-widest mt-2">Próximos eventos e tarefas</p>
+        </div>
+        <button className="bg-tertiary text-on-tertiary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-tertiary-dim transition-colors" onClick={() => setIsOpen(true)}>
+          <CalendarDays size={24} />
+        </button>
+      </header>
+
+      <div className="flex flex-col gap-4">
+        {[...events].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((ev: any) => (
+          <div key={ev.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/5 hover:border-tertiary/20 flex flex-col gap-4 transition-colors">
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary border border-tertiary/20">
+                  <CalendarDays size={20} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-headline font-semibold text-primary">{ev.title}</span>
+                  <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant mt-1">{formatDate(ev.date)}</span>
+                </div>
+              </div>
+              <button className="p-2 text-on-surface-variant hover:text-error transition-colors" onClick={() => deleteEvent(ev.id)}>
+                <Trash2 size={18} />
+              </button>
+            </div>
+            {ev.observation && (
+              <div className="bg-surface-container-highest/50 p-4 rounded-lg border border-outline-variant/5 text-sm font-body text-on-surface-variant">
+                {ev.observation}
+              </div>
+            )}
+          </div>
+        ))}
+        {events.length === 0 && <p className="text-on-surface-variant text-sm col-span-full">Nenhum evento registrado.</p>}
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={(e: any) => e.stopPropagation()}
+                        className="bg-surface-container-high w-full max-w-md p-8 rounded-2xl border border-tertiary/30 shadow-[0_20px_60px_rgba(0,212,236,0.1)]">
+              <div className="flex justify-between items-start mb-8">
+                <h2 className="font-headline font-bold text-2xl">Novo Evento</h2>
+                <button onClick={() => setIsOpen(false)} type="button" className="text-on-surface-variant hover:text-error transition-colors p-1"><X size={24}/></button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Título do Evento</label>
+                  <input required className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors" 
+                         value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ex: Feira de Domingo..." />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Observações</label>
+                  <textarea className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors min-h-[100px]" 
+                         value={formData.observation} onChange={e => setFormData({...formData, observation: e.target.value})} placeholder="Endereço, notas..." />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Data do evento</label>
+                  <input required type="date" className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors w-full uppercase" style={{ colorScheme: 'dark' }}
+                         value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+                </div>
+                <div className="pt-6 grid grid-cols-2 gap-4">
+                  <button type="button" onClick={() => setIsOpen(false)} className="py-4 rounded-xl border border-outline-variant/30 font-label text-xs uppercase tracking-widest font-bold hover:bg-surface-container-low transition-colors">Cancelar</button>
+                  <button type="submit" className="py-4 bg-tertiary text-on-tertiary rounded-xl font-label text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-opacity shadow">Salvar Evento</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const BottomNav = ({ view, setView }: any) => (
-  <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-2 pb-6 pt-4 backdrop-blur-3xl bg-surface-container-low/95 border-t border-outline-variant/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] z-[100]">
+  <nav className="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-1 pb-6 pt-4 backdrop-blur-3xl bg-surface-container-low/95 border-t border-outline-variant/10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)] z-[100]">
     {[
       { id: 'dashboard', label: 'Visão Geral', icon: LayoutDashboard },
       { id: 'pdv', label: 'Vender', icon: ShoppingCart },
       { id: 'products', label: 'Estoque', icon: Palette },
       { id: 'expenses', label: 'Custos', icon: CreditCard },
-      { id: 'history', label: 'Hitórico', icon: History }
+      { id: 'history', label: 'Histórico', icon: History },
+      { id: 'calendar', label: 'Agenda', icon: CalendarDays }
     ].map((item) => (
       <button 
         key={item.id}
         onClick={() => setView(item.id)}
         className={cn(
-          "flex flex-col items-center justify-center transition-all duration-300 w-[64px]",
+          "flex flex-col items-center justify-center transition-all duration-300 w-[16%]",
           view === item.id ? "text-tertiary font-bold scale-110 -translate-y-1" : "text-on-surface-variant/70 hover:text-primary"
         )}
       >
-        <item.icon className="w-6 h-6 mb-1.5" strokeWidth={view === item.id ? 2.5 : 2} />
-        <span className="font-label text-[9px] uppercase tracking-tighter truncate">{item.label}</span>
+        <item.icon className="w-5 h-5 mb-1.5" strokeWidth={view === item.id ? 2.5 : 2} />
+        <span className="font-label text-[8px] sm:text-[9px] uppercase tracking-tighter truncate">{item.label}</span>
       </button>
     ))}
   </nav>
@@ -589,6 +682,7 @@ export default function App() {
         {view === 'products' && <Products products={store.products} addProduct={store.addProduct} updateProduct={store.updateProduct} deleteProduct={store.deleteProduct} />}
         {view === 'expenses' && <Expenses expenses={store.expenses} addExpense={store.addExpense} deleteExpense={store.deleteExpense} />}
         {view === 'history' && <SalesHistory sales={store.sales} deleteSale={store.deleteSale} />}
+        {view === 'calendar' && <CalendarAgenda events={store.events || []} addEvent={store.addEvent} deleteEvent={store.deleteEvent} />}
       </main>
 
       <BottomNav view={view} setView={setView} />
