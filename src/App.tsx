@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Menu, LayoutDashboard, Palette, CreditCard, ReceiptText, 
   CalendarDays, TrendingUp, TrendingDown, Wallet, History, 
-  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag
+  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag, Edit3, Sparkles
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, ReferenceLine } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -126,7 +126,7 @@ const Dashboard = ({ products, sales, expenses }: any) => {
   }, [products, sales, currentMonth]);
 
   const recentActivity = useMemo(() => {
-    const s = sales.map((s: any) => ({ type: 'sale', id: s.id, date: s.date, title: `Venda: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
+    const s = sales.map((s: any) => ({ type: 'sale', id: s.id, date: s.date, title: s.isGatcha ? `Gatcha: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}` : `Venda: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: s.isGatcha ? Sparkles : ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
     const e = expenses.map((e: any) => ({ type: 'expense', id: e.id, date: e.date, title: `Custo: ${e.description}`, amount: Number(e.amount) * -1, icon: Wallet, color: 'text-error', bgColor: 'bg-error/10' }));
     return [...s, ...e].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
   }, [sales, expenses]);
@@ -218,62 +218,83 @@ const Dashboard = ({ products, sales, expenses }: any) => {
   );
 };
 
-const PDV = ({ products, addSale }) => {
-  const [cart, setCart] = useState({});
+const PDV = ({ products, addSale }: any) => {
+  const [cart, setCart] = useState<any>({});
   const [note, setNote] = useState('');
+  const [isGatcha, setIsGatcha] = useState(false);
 
   const cartItems = useMemo(() => Object.entries(cart).map(([id, qty]) => {
-      const p = products.find(prod => prod.id === id);
+      const p = products.find((prod: any) => prod.id === id);
       return p ? { ...p, qty } : null;
   }).filter(Boolean), [cart, products]);
 
-  const total = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const total = isGatcha ? 5 : cartItems.reduce((acc, item) => acc + item.price * (item.qty as number), 0);
 
-  const updateQty = (id, delta) => setCart(prev => {
-    const newQty = (prev[id] || 0) + delta;
-    if (newQty <= 0) { const next = { ...prev }; delete next[id]; return next; }
-    return { ...prev, [id]: newQty };
-  });
+  const updateQty = (id: string, delta: number) => {
+    const p = products.find((prod: any) => prod.id === id);
+    if (!p) return;
+    
+    setCart((prev: any) => {
+      const currentQty = prev[id] || 0;
+      const newQty = currentQty + delta;
+      
+      if (newQty > (p.stock || 0)) {
+        addToast(`Estoque insuficiente! (${p.stock || 0} disponíveis)`, 'error');
+        return prev;
+      }
+      
+      if (newQty <= 0) { const next = { ...prev }; delete next[id]; return next; }
+      return { ...prev, [id]: newQty };
+    });
+  };
 
   const handleFinish = async () => {
     if (cartItems.length === 0) return;
     const items = cartItems.map(i => ({ productId: i.id, name: i.name, qty: i.qty, price: i.price }));
+    
     try {
-      await addSale(items, note);
+      await addSale(items, note, isGatcha);
       setCart({}); setNote('');
-      addToast('Venda registrada com sucesso! 🚀', 'success');
+      addToast('Venda registrada! 🚀', 'success');
     } catch { addToast('Erro ao processar venda.', 'error'); }
   };
 
   return (
-    <div className="pb-32 animate-slide-up space-y-8 mx-auto max-w-4xl">
-      <header>
-        <h3 className="font-headline text-3xl font-black text-primary uppercase tracking-tighter">Ponto de Venda</h3>
-        <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2">Toque nos itens para adicionar ao carrinho</p>
+    <div className="pb-32 animate-slide-up space-y-8 mx-auto max-w-4xl px-2 sm:px-0">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div>
+          <h3 className="font-headline text-3xl font-black text-primary uppercase tracking-tighter">Ponto de Venda</h3>
+          <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2 font-bold opacity-60">Toque nos itens para adicionar</p>
+        </div>
+        
+        <div className="flex bg-surface-container-high rounded-xl p-1 border border-outline-variant/10 w-full sm:w-auto">
+          <button onClick={() => setIsGatcha(false)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all", !isGatcha ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:text-primary")}>Normal</button>
+          <button onClick={() => setIsGatcha(true)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all flex items-center justify-center gap-2", isGatcha ? "bg-tertiary text-on-tertiary shadow-lg" : "text-on-surface-variant hover:text-tertiary")}>
+            <Sparkles size={12}/> Gatcha
+          </button>
+        </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {products.map(p => {
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        {products.map((p: any) => {
           const inCart = cart[p.id] || 0;
           const noStock = (p.stock || 0) <= 0;
           return (
             <div key={p.id} onClick={() => !noStock && updateQty(p.id, 1)} 
-                 className={cn("bg-surface-container-high p-6 rounded-xl flex flex-col items-center gap-4 text-center cursor-pointer transition-all border border-outline-variant/10 relative overflow-hidden group hover:-translate-y-1",
-                   inCart ? "border-tertiary bg-surface-container-low shadow-[0_0_20px_rgba(0,212,236,0.1)]" : "",
-                   noStock ? "opacity-50 grayscale cursor-not-allowed" : ""
+                 className={cn("bg-surface-container-high p-4 sm:p-6 rounded-2xl flex flex-col items-center gap-4 text-center cursor-pointer transition-all border border-outline-variant/10 relative overflow-hidden group hover:border-primary/30",
+                   inCart ? "border-primary bg-surface-container-low" : "",
+                   noStock ? "opacity-40 grayscale cursor-not-allowed" : ""
                  )}>
               {inCart > 0 && (
-                <div className="absolute top-0 right-0 bg-tertiary text-on-tertiary font-bold text-xs px-3 py-1 rounded-bl-lg font-label">
+                <div className="absolute top-2 right-2 bg-primary text-on-primary font-bold text-xs w-6 h-6 flex items-center justify-center rounded-full font-label shadow-lg animate-scale-in">
                   {inCart}
                 </div>
               )}
-              <span className="text-5xl group-hover:scale-110 transition-transform duration-300">{p.emoji || '📦'}</span>
-              <div className="flex flex-col gap-1 w-full mt-2">
-                <span className="font-headline font-bold text-sm text-primary leading-tight line-clamp-2">{p.name}</span>
-                <span className="font-label font-bold text-tertiary text-sm mt-1">{formatCurrency(p.price)}</span>
-                <span className={cn("text-[10px] font-label font-bold uppercase tracking-wider mt-1", (p.stock||0) <= 5 ? "text-error" : "text-on-surface-variant")}>
-                  {noStock ? 'ESGOTADO' : `${p.stock||0} unidades`}
-                </span>
+              <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">{p.emoji || '📦'}</span>
+              <div className="flex flex-col gap-1 w-full">
+                <span className="font-headline font-bold text-xs text-primary leading-tight line-clamp-1">{p.name}</span>
+                <span className="font-label font-bold text-on-surface-variant text-[10px]">{noStock ? 'ESGOTADO' : `${p.stock||0} em estoque`}</span>
+                <span className="font-label font-black text-tertiary text-sm mt-1">{formatCurrency(p.price)}</span>
               </div>
             </div>
           );
@@ -283,15 +304,42 @@ const PDV = ({ products, addSale }) => {
       <AnimatePresence>
         {cartItems.length > 0 && (
           <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }} 
-                      className="fixed bottom-[90px] left-4 right-4 md:left-[50%] md:-translate-x-[50%] md:w-[600px] z-50">
-            <div className="bg-surface-container-highest/95 backdrop-blur-xl border border-tertiary/50 p-6 rounded-2xl flex items-center justify-between shadow-[0_10px_40px_rgba(0,0,0,0.8)]">
-              <div>
-                <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Carrinho atual</p>
-                <p className="font-headline text-2xl font-black text-tertiary">{formatCurrency(total)}</p>
+                      className="fixed bottom-[95px] left-2 right-2 md:left-[50%] md:-translate-x-[50%] md:w-[650px] z-50">
+            <div className="bg-surface-container-highest/95 backdrop-blur-2xl border-2 border-primary/30 p-4 sm:p-6 rounded-[2rem] shadow-[0_20px_80px_rgba(0,0,0,0.8)] flex flex-col gap-4">
+              <div className="max-h-[120px] overflow-y-auto px-2 space-y-2 thin-scrollbar">
+                {cartItems.map((item: any) => (
+                  <div key={item.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{item.emoji}</span>
+                      <span className="font-body text-xs font-bold text-primary">{item.name}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => { e.stopPropagation(); updateQty(item.id, -1); }} className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-primary border border-outline-variant/10 hover:bg-error/20 transition-colors"><Minus size={14}/></button>
+                      <span className="font-label font-black text-sm text-primary w-4 text-center">{item.qty}</span>
+                      <button onClick={(e) => { e.stopPropagation(); updateQty(item.id, 1); }} className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-primary border border-outline-variant/10 hover:bg-primary/20 transition-colors"><Plus size={14}/></button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <button onClick={handleFinish} className="bg-tertiary text-on-tertiary px-8 py-3 rounded-xl font-label text-xs uppercase tracking-widest font-bold hover:bg-tertiary-dim transition-colors flex items-center gap-2">
-                Finalizar Venda <ArrowRight size={16} />
-              </button>
+              
+              <div className="h-[1px] w-full bg-outline-variant/10 px-2"/>
+              
+              <div className="flex items-center justify-between px-2">
+                <div className="flex flex-col">
+                  <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant flex items-center gap-1">
+                    {isGatcha ? <><Sparkles size={8} className="text-tertiary" /> Total Gatcha</> : 'Total Normal'}
+                  </p>
+                  <p className="font-headline text-3xl font-black text-primary">{formatCurrency(total)}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setCart({})} className="w-12 h-12 rounded-xl bg-error/10 text-error flex items-center justify-center border border-error/20 hover:bg-error hover:text-white transition-all">
+                    <Trash2 size={20} />
+                  </button>
+                  <button onClick={handleFinish} className="bg-primary text-on-primary px-8 py-3 rounded-xl font-label text-xs uppercase tracking-widest font-bold hover:opacity-90 transition-all flex items-center gap-2 shadow-xl shadow-primary/20">
+                    Registrar Venda <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
@@ -300,16 +348,32 @@ const PDV = ({ products, addSale }) => {
   );
 };
 
-const Products = ({ products, addProduct, updateProduct, deleteProduct }) => {
+const Products = ({ products, addProduct, updateProduct, deleteProduct }: any) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', price: '', cost: '', stock: '', emoji: '📦' });
 
-  const handleSubmit = (e) => {
+  const handleEdit = (p: any) => {
+    setEditId(p.id);
+    setFormData({ name: p.name, price: p.price.toString(), cost: p.cost?.toString() || '', stock: p.stock?.toString() || '', emoji: p.emoji || '📦' });
+    setIsOpen(true);
+  };
+
+  const handleSubmit = (e: any) => {
     e.preventDefault();
-    addProduct({ ...formData, price: parseFloat(formData.price), cost: parseFloat(formData.cost) || 0, stock: parseInt(formData.stock) || 0 });
+    const data = { ...formData, price: parseFloat(formData.price), cost: parseFloat(formData.cost) || 0, stock: parseInt(formData.stock) || 0 };
+    
+    if (editId) {
+      updateProduct(editId, data);
+      addToast('Produto atualizado!', 'success');
+    } else {
+      addProduct(data);
+      addToast('Produto inserido!', 'success');
+    }
+    
     setIsOpen(false);
+    setEditId(null);
     setFormData({ name: '', price: '', cost: '', stock: '', emoji: '📦' });
-    addToast('Produto inserido com sucesso!', 'success');
   };
 
   return (
@@ -319,27 +383,32 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }) => {
           <h3 className="font-headline text-3xl font-black text-primary uppercase tracking-tighter">Estoque</h3>
           <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2">Gerencie as unidades e produtos</p>
         </div>
-        <button className="bg-primary text-on-primary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-primary-dim transition-colors" onClick={() => setIsOpen(true)}>
+        <button className="bg-primary text-on-primary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-primary-dim transition-colors" onClick={() => { setEditId(null); setFormData({ name: '', price: '', cost: '', stock: '', emoji: '📦' }); setIsOpen(true); }}>
           <PlusCircle size={24} />
         </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(p => (
-          <div key={p.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex justify-between items-center group">
+        {products.map((p: any) => (
+          <div key={p.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex justify-between items-center group transition-all hover:bg-surface-container-high">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center text-3xl border border-outline-variant/20 shadow-inner">
+              <div className="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center text-3xl border border-outline-variant/20 shadow-inner group-hover:bg-surface animate-scale-in">
                 {p.emoji || '📦'}
               </div>
               <div className="flex flex-col">
                 <span className="font-headline font-bold text-sm text-primary mb-1">{p.name}</span>
                 <span className="font-label text-xs font-bold text-tertiary">{formatCurrency(p.price)}</span>
-                <span className="font-label text-[10px] uppercase tracking-wider text-on-surface-variant mt-1">Estoque: {p.stock || 0}</span>
+                <span className={cn("font-label text-[10px] uppercase tracking-wider mt-1 font-black", (p.stock || 0) <= 5 ? "text-error" : "text-on-surface-variant")}>Estoque: {p.stock || 0}</span>
               </div>
             </div>
-            <button className="p-3 text-on-surface-variant hover:bg-error/10 hover:text-error rounded-xl transition-colors" onClick={() => deleteProduct(p.id)}>
-              <Trash2 size={18} />
-            </button>
+            <div className="flex gap-1">
+              <button className="p-3 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" onClick={() => handleEdit(p)}>
+                <Edit3 size={18} />
+              </button>
+              <button className="p-3 text-on-surface-variant hover:bg-error/10 hover:text-error rounded-xl transition-colors" onClick={() => deleteProduct(p.id)}>
+                <Trash2 size={18} />
+              </button>
+            </div>
           </div>
         ))}
         {products.length === 0 && <p className="text-on-surface-variant text-sm col-span-full">Nenhum produto cadastrado.</p>}
@@ -352,8 +421,8 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }) => {
             <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} onClick={e => e.stopPropagation()}
                         className="bg-surface-container-high w-full max-w-md p-8 rounded-2xl border border-tertiary/30 shadow-[0_20px_60px_rgba(0,0,0,0.8)]">
               <div className="flex justify-between items-start mb-8">
-                <h2 className="font-headline font-bold text-2xl">Novo Produto</h2>
-                <button onClick={() => setIsOpen(false)} type="button" className="text-on-surface-variant hover:text-error transition-colors p-1"><X size={24}/></button>
+                <h2 className="font-headline font-bold text-2xl">{editId ? 'Editar Produto' : 'Novo Produto'}</h2>
+                <button onClick={() => { setIsOpen(false); setEditId(null); }} type="button" className="text-on-surface-variant hover:text-error transition-colors p-1"><X size={24}/></button>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col gap-2">
@@ -374,13 +443,13 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }) => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Estoque Inicial</label>
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Estoque</label>
                   <input required type="number" className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors" 
                          value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} placeholder="0" />
                 </div>
                 <div className="pt-6 grid grid-cols-2 gap-4">
-                  <button type="button" onClick={() => setIsOpen(false)} className="py-4 rounded-xl border border-outline-variant/30 font-label text-xs uppercase tracking-widest font-bold hover:bg-surface-container-low transition-colors">Cancelar</button>
-                  <button type="submit" className="py-4 bg-tertiary text-on-tertiary rounded-xl font-label text-xs uppercase tracking-widest font-bold hover:bg-tertiary-dim transition-colors shadow">Salvar Item</button>
+                  <button type="button" onClick={() => { setIsOpen(false); setEditId(null); }} className="py-4 rounded-xl border border-outline-variant/30 font-label text-xs uppercase tracking-widest font-bold hover:bg-surface-container-low transition-colors">Cancelar</button>
+                  <button type="submit" className="py-4 bg-tertiary text-on-tertiary rounded-xl font-label text-xs uppercase tracking-widest font-bold hover:bg-tertiary-dim transition-colors shadow">{editId ? 'Salvar Edição' : 'Salvar Item'}</button>
                 </div>
               </form>
             </motion.div>
@@ -503,10 +572,11 @@ const SalesHistory = ({ sales, deleteSale }) => (
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary">
-                <ReceiptText size={18} />
+                {s.isGatcha ? <Sparkles size={18} /> : <ReceiptText size={18} />}
               </div>
               <div className="flex flex-col">
-                <span className="font-label text-[10px] text-tertiary font-bold uppercase tracking-widest">
+                <span className="font-label text-[10px] text-tertiary font-bold uppercase tracking-widest flex items-center gap-2">
+                  {s.isGatcha && <span className="bg-tertiary/20 text-tertiary px-2 py-0.5 rounded text-[8px]">GATCHA</span>}
                   {formatDate(s.date)} • {formatTime(s.date)}
                 </span>
                 <span className="font-headline text-sm text-on-surface-variant mt-1">Ref: {s.id.substring(0,8)}</span>

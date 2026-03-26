@@ -98,8 +98,8 @@ export const useStore = () => {
   };
 
   // Sales
-  const addSale = async (items, note = '') => {
-    const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const addSale = async (items, note = '', isGatcha = false) => {
+    const total = isGatcha ? 5 : items.reduce((s, i) => s + i.price * i.qty, 0);
     const cost = items.reduce((s, i) => {
       const p = products.find(prod => prod.id === i.productId);
       return s + (p ? p.cost || 0 : 0) * i.qty;
@@ -113,6 +113,7 @@ export const useStore = () => {
       total,
       profit,
       note,
+      isGatcha
     };
 
     if (supabase) {
