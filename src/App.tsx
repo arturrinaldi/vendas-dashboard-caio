@@ -46,7 +46,7 @@ const Header = ({ view, setView }: any) => (
     </nav>
 
     <div className="flex items-center gap-4">
-      <div className="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/20 bg-surface flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/20 bg-white shadow-sm flex items-center justify-center">
         <img src={logoUrl} alt="Logo" className="w-[85%] h-[85%] object-contain" />
       </div>
     </div>
