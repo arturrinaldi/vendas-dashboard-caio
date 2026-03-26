@@ -1,35 +1,20 @@
-# Caio Vendas SaaS 🚀
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Este é um sistema premium de gerenciamento de vendas e estoque, adaptado para as necessidades da **Caio-Vendas**.
+# Run and deploy your AI Studio app
 
-## Funcionalidades ✨
+This contains everything you need to run your app locally.
 
-1.  **Dashboard Premium**: Visão geral de lucro, vendas e despesas com gráficos dinâmicos.
-2.  **PDV (Ponto de Venda)**: Interface rápida para registrar novas vendas.
-3.  **Estoque Inteligente**: Gerenciamento de catálogo com controle de unidades.
-4.  **Gestão de Custos**: Registro de despesas operacionais.
-5.  **Design State-of-the-Art**: Tema escuro com detalhes em dourado e integração da mascote **Armor**.
+View your app in AI Studio: https://ai.studio/apps/192b6af1-ab90-4e60-a65d-5a12162823fd
 
-## Tecnologias Utilizadas 🛠️
+## Run Locally
 
-*   **React + Vite**: Base do projeto.
-*   **Lucide React**: Ícones modernos.
-*   **Recharts**: Dashboards e estatísticas.
-*   **Supabase / LocalStorage**: Sincronização em nuvem com fallback para armazenamento local.
+**Prerequisites:**  Node.js
 
-## Como começar ⚡
 
-1.  Certifique-se de ter o [Node.js](https://nodejs.org/) instalado.
-2.  No terminal, entre na pasta `vendas-app`:
-    ```bash
-    cd vendas-app
-    ```
-3.  Inicie o servidor de desenvolvimento:
-    ```bash
-    npm run dev
-    ```
-4.  O app estará disponível em `http://localhost:5173`.
-
----
-
-Desenvolvido com 🦾 pela Antigravity
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
