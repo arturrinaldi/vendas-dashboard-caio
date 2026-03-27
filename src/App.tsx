@@ -11,7 +11,7 @@ import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
-import chestGif from './assets/chest.gif';
+import chest2Gif from './assets/chest2.gif';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
@@ -1056,7 +1056,11 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
           setPrize(result);
           setRemaining(result.remaining);
           setLooted(prev => [result, ...prev]);
-          setChestState('opened');
+          if (result.remaining === 0) {
+            setTimeout(() => setChestState('opened'), 2500); // Wait for user to see the last prize
+          } else {
+            setChestState('opened');
+          }
           
           if (result.rarity === 'Lendário') {
             confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#c084fc', '#ffd700'] });
@@ -1106,7 +1110,7 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
                 {chestState === 'closed' ? (
                   <MedievalChest state="closed" />
                 ) : (
-                  <img src={`${chestGif}?t=${Date.now()}`} alt="Opening Chest" className="w-56 h-48 object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
+                  <img src={`${chest2Gif}?t=${Date.now()}`} alt="Opening Chest" className="w-56 h-48 object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
                 )}
               </motion.div>
               
@@ -1169,15 +1173,11 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
                     </div>
                     
                     <div className="pt-4 space-y-4 relative z-10">
-                      {isClaimed ? (
-                        <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-2xl flex flex-col items-center gap-2 animate-scale-in">
-                          <CheckCircle2 className="text-green-400 w-8 h-8" />
-                          <p className="text-green-400 font-headline font-black text-[10px] uppercase tracking-widest">Resgate Confirmado</p>
-                        </div>
-                      ) : (
-                        <button onClick={() => setIsClaimed(true)} className="w-full py-5 rounded-2xl bg-tertiary text-on-tertiary font-label text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(0,212,236,0.2)] hover:shadow-[0_0_30px_rgba(0,212,236,0.4)] transition-all active:scale-95">Confirmar Resgate</button>
-                      )}
-                      <p className="text-[9px] text-center opacity-40 uppercase font-black leading-relaxed px-6">Mostre esta tela selada para o Caio para validar seu tesouro</p>
+                      <div className="bg-tertiary/10 border border-tertiary/20 p-5 rounded-2xl flex flex-col items-center gap-2 animate-scale-in">
+                        <CheckCircle2 className="text-tertiary w-8 h-8" />
+                        <p className="text-tertiary font-headline font-black text-[10px] uppercase tracking-widest">Sua tentativa de saque terminou</p>
+                      </div>
+                      <p className="text-[9px] text-center opacity-40 uppercase font-black leading-relaxed px-6">Valide os itens acima com o vendedor para coletar seu tesouro</p>
                     </div>
                   </div>
                 </div>
