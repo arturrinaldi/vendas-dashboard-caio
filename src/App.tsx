@@ -11,6 +11,7 @@ import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
+import chestGif from './assets/chest.gif';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
@@ -1098,10 +1099,15 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
         <AnimatePresence mode="wait">
           {chestState !== 'opened' ? (
             <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0, filter: 'blur(20px)' }} className="flex flex-col items-center gap-8">
-              <motion.div animate={chestState === 'opening' ? { rotate: [0, -3, 3, -3, 3, 0], scale: [1, 1.05, 1] } : { y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.1 : 4 }}
+              <motion.div animate={chestState === 'opening' ? { rotate: [0, -2, 2, -2, 2, 0], scale: 1.1 } : { y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.1 : 4 }}
                           onClick={handleOpen} className="cursor-pointer relative group">
                 <div className="absolute inset-x-0 top-1/2 h-4 w-full bg-tertiary/10 blur-3xl group-hover:bg-tertiary/30 transition-all scale-[3]" />
-                <MedievalChest state={chestState} />
+                
+                {chestState === 'closed' ? (
+                  <MedievalChest state="closed" />
+                ) : (
+                  <img src={`${chestGif}?t=${Date.now()}`} alt="Opening Chest" className="w-56 h-48 object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
+                )}
               </motion.div>
               
               <div className="flex flex-col items-center gap-6">
