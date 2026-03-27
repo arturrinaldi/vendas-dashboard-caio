@@ -1026,7 +1026,26 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
               {remaining && remaining > 0 ? (
                 <button onClick={() => setChestState('closed')} className="bg-surface-container-high text-white px-10 py-5 rounded-2xl font-label text-[10px] font-black uppercase tracking-[0.3em] border border-outline-variant/20 hover:bg-surface transition-all active:scale-95 shadow-xl">Continuar Saqueando</button>
               ) : (
-                <p className="font-headline font-black text-[10px] uppercase tracking-[0.3em] text-white/20">Masmorra Limpa</p>
+                <div className="flex flex-col items-center gap-6 animate-slide-up">
+                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  <p className="font-headline font-black text-xs uppercase tracking-[0.4em] text-tertiary">Masmorra Limpa</p>
+                  <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 w-full max-w-sm space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-center opacity-40">Seus Tesouros</p>
+                    <div className="space-y-3">
+                      {looted.map((l, i) => (
+                        <div key={i} className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{l.emoji}</span>
+                            <span className="font-headline font-bold text-xs uppercase tracking-tight text-white">{l.name}</span>
+                          </div>
+                          <span className={cn("text-[8px] font-black uppercase px-2 py-1 rounded border", rarityStyles[l.rarity])}>{l.rarity}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button onClick={() => window.print()} className="w-full py-4 rounded-2xl bg-white text-black font-label text-[10px] font-black uppercase tracking-[0.2em] mt-4 hover:bg-tertiary transition-colors">Resgatar Prêmios</button>
+                    <p className="text-[8px] text-center opacity-30 uppercase font-bold px-4">Mostre esta tela para o Caio para validar seu saque</p>
+                  </div>
+                </div>
               )}
             </motion.div>
           )}
