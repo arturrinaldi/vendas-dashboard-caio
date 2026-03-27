@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Menu, LayoutDashboard, Palette, CreditCard, ReceiptText, 
   CalendarDays, TrendingUp, TrendingDown, Wallet, History, 
-  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag, Edit3, Sparkles, CheckCircle2
+  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag, Edit3, Sparkles, CheckCircle2, QrCode
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, ReferenceLine } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -801,17 +801,20 @@ const BottomNav = ({ view, setView }: any) => (
       { id: 'products', label: 'Estoque', icon: Palette },
       { id: 'expenses', label: 'Custos', icon: CreditCard },
       { id: 'history', label: 'Histórico', icon: History },
-      { id: 'lootbox', label: 'Loot', icon: Sparkles }
+      { id: 'lootbox', label: 'Loot Box', icon: Sparkles, special: true }
     ].map((item) => (
       <button 
         key={item.id}
         onClick={() => setView(item.id)}
         className={cn(
           "flex flex-col items-center justify-center transition-all duration-300 w-[16%]",
-          view === item.id ? "text-tertiary font-bold scale-110 -translate-y-1" : "text-on-surface-variant/70 hover:text-primary"
+          view === item.id ? "text-tertiary font-bold scale-110 -translate-y-1" : "text-on-surface-variant/70 hover:text-primary",
+          item.special && view !== item.id ? "text-tertiary/60 animate-pulse" : ""
         )}
       >
-        <item.icon className="w-5 h-5 mb-1.5" strokeWidth={view === item.id ? 2.5 : 2} />
+        <div className={cn("relative p-1 rounded-full", item.special && "bg-tertiary/5 shadow-[0_0_15px_rgba(0,212,236,0.1)]")}>
+          <item.icon className="w-5 h-5 mb-0.5" strokeWidth={view === item.id ? 2.5 : 2} />
+        </div>
         <span className="font-label text-[8px] sm:text-[9px] uppercase tracking-tighter truncate">{item.label}</span>
       </button>
     ))}
@@ -853,14 +856,23 @@ const LootBoxAdmin = ({ prizes, runs, products, addPrize, updatePrize, deletePri
         </div>
         <div className="flex gap-2 items-center">
           <div className="flex flex-col gap-1">
-            <label className="text-[8px] uppercase font-black text-tertiary">Giros</label>
-            <input type="number" min="1" max="10" className="w-16 bg-surface-container-high border border-outline-variant/30 rounded-lg p-2 text-xs text-white text-center focus:outline-none" value={attempts} onChange={e=>setAttempts(parseInt(e.target.value)||1)} />
+            <label className="text-[8px] uppercase font-black text-tertiary opacity-60">Giros</label>
+            <input type="number" min="1" max="10" className="w-16 bg-surface-container-high border border-outline-variant/30 rounded-xl p-3 text-xs text-white text-center focus:outline-none focus:border-tertiary transition-colors" value={attempts} onChange={e=>setAttempts(parseInt(e.target.value)||1)} />
           </div>
-          <button className="bg-primary text-white h-12 px-6 rounded-xl hover:opacity-90 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest mt-3" onClick={handleGenerate}>
-            <QRCodeSVG value="test" size={14} /> Gerar QR
+          <button 
+            className="group relative h-14 px-8 rounded-2xl overflow-hidden transition-all active:scale-95 shadow-2xl mt-4" 
+            onClick={handleGenerate}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-primary via-tertiary to-primary bg-size-200 animate-gradient-x opacity-90" />
+            <div className="relative flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] text-white">
+              <QrCode size={18} className="group-hover:rotate-12 transition-transform" />
+              <span>Gerar QR Code</span>
+            </div>
+            {/* Inner glow */}
+            <div className="absolute inset-0 border border-white/20 rounded-2xl pointer-events-none" />
           </button>
-          <button className="bg-tertiary text-on-tertiary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-tertiary-dim transition-colors transition-all mt-3" onClick={() => setIsOpen(true)}>
-            <PlusCircle size={24} />
+          <button className="bg-surface-container-highest text-white w-14 h-14 flex items-center justify-center rounded-2xl border border-outline-variant/10 hover:border-tertiary/50 transition-all mt-4 group shadow-lg" onClick={() => setIsOpen(true)}>
+            <Plus className="group-hover:rotate-90 transition-transform" size={24} />
           </button>
         </div>
       </header>

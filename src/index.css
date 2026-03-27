@@ -57,6 +57,21 @@
   --color-on-background: #ede3e4;
   --color-primary-container: #454747;
   --color-secondary-fixed-dim: #d5d4d4;
+
+  @keyframes gradient-x {
+    0% { background-position: 0% 50% }
+    50% { background-position: 100% 50% }
+    100% { background-position: 0% 50% }
+  }
+  --animate-gradient-x: gradient-x 3s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
+.animate-gradient-x {
+  animation: var(--animate-gradient-x);
 }
 
 @layer base {
