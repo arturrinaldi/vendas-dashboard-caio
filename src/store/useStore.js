@@ -106,7 +106,7 @@ export const useStore = () => {
   };
 
   // Sales
-  const addSale = async (items, note = '', isGatcha = false) => {
+  const addSale = async (items, note = '', isGatcha = false, eventId = null) => {
     const total = isGatcha ? 5 : items.reduce((s, i) => s + i.price * i.qty, 0);
     const cost = items.reduce((s, i) => {
       const p = products.find(prod => prod.id === i.productId);
@@ -121,7 +121,8 @@ export const useStore = () => {
       total,
       profit,
       note,
-      isGatcha
+      isGatcha,
+      event_id: eventId
     };
 
     if (supabase) {

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Menu, LayoutDashboard, Palette, CreditCard, ReceiptText, 
   CalendarDays, TrendingUp, TrendingDown, Wallet, History, 
-  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag, Edit3, Sparkles
+  ShoppingCart, Package, PlusCircle, Trash2, X, Plus, Minus, Check, ArrowRight, Loader2, AlertTriangle, ShoppingBag, Edit3, Sparkles, CheckCircle2
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, ReferenceLine } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -88,12 +88,18 @@ const KPICard = ({ title, value, change, type, progress, barData }: any) => (
   </motion.div>
 );
 
-const Dashboard = ({ products, sales, expenses }: any) => {
+const Dashboard = ({ products, sales, expenses, events }: any) => {
   const [period, setPeriod] = useState('Mensal');
+  const [filterEvent, setFilterEvent] = useState('all');
   const currentMonth = currentMonthKey();
   
+  const filteredSales = useMemo(() => {
+    if (filterEvent === 'all') return sales;
+    return sales.filter((s: any) => s.event_id === filterEvent);
+  }, [sales, filterEvent]);
+
   const stats = useMemo(() => {
-    const monthSales = sales.filter(s => getMonthKey(s.date) === currentMonth);
+    const monthSales = filteredSales.filter(s => getMonthKey(s.date) === currentMonth);
     const monthExpenses = expenses.filter(e => getMonthKey(e.date) === currentMonth);
     
     const revenue = monthSales.reduce((acc, s) => acc + s.total, 0);
@@ -102,12 +108,12 @@ const Dashboard = ({ products, sales, expenses }: any) => {
     const netProfit = saleProfits - otherExpenses;
 
     return { revenue, netProfit, otherExpenses };
-  }, [sales, expenses, currentMonth]);
+  }, [filteredSales, expenses, currentMonth]);
 
   const chartData = useMemo(() => {
     const months = getLast6Months();
     return months.map(m => {
-      const monthSales = sales.filter(s => getMonthKey(s.date) === m.key);
+      const monthSales = filteredSales.filter(s => getMonthKey(s.date) === m.key);
       const monthExpenses = expenses.filter(e => getMonthKey(e.date) === m.key);
       const mRevenue = monthSales.reduce((acc, s) => acc + s.total, 0);
       const mProfit = monthSales.reduce((acc, s) => acc + (s.profit || 0), 0);
@@ -118,21 +124,24 @@ const Dashboard = ({ products, sales, expenses }: any) => {
         profit: mProfit - mExpenses 
       };
     });
-  }, [sales, expenses]);
+  }, [filteredSales, expenses]);
 
   const topProducts = useMemo(() => {
     const counts = {};
-    const monthSales = sales.filter(s => getMonthKey(s.date) === currentMonth);
-    monthSales.forEach(s => s.items.forEach(i => counts[i.productId] = (counts[i.productId] || 0) + i.qty));
+    const baseSales = filterEvent === 'all' 
+      ? filteredSales.filter(s => getMonthKey(s.date) === currentMonth)
+      : filteredSales;
+      
+    baseSales.forEach(s => s.items.forEach(i => counts[i.productId] = (counts[i.productId] || 0) + i.qty));
     return products.map(p => ({ ...p, qty: counts[p.id] || 0 }))
       .sort((a, b) => b.qty - a.qty).slice(0, 4);
-  }, [products, sales, currentMonth]);
+  }, [products, filteredSales, currentMonth, filterEvent]);
 
   const recentActivity = useMemo(() => {
-    const s = sales.map((s: any) => ({ type: 'sale', id: s.id, date: s.date, title: s.isGatcha ? `Gatcha: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}` : `Venda: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: s.isGatcha ? Sparkles : ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
+    const s = filteredSales.map((s: any) => ({ type: 'sale', id: s.id, date: s.date, title: s.isGatcha ? `Gatcha: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}` : `Venda: ${s.items.map((i: any)=>`${i.qty}x ${i.name}`).join(', ')}`, amount: s.total, icon: s.isGatcha ? Sparkles : ShoppingBag, color: 'text-tertiary', bgColor: 'bg-tertiary/10' }));
     const e = expenses.map((e: any) => ({ type: 'expense', id: e.id, date: e.date, title: `Custo: ${e.description}`, amount: Number(e.amount) * -1, icon: Wallet, color: 'text-error', bgColor: 'bg-error/10' }));
     return [...s, ...e].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
-  }, [sales, expenses]);
+  }, [filteredSales, expenses]);
 
   return (
     <div className="space-y-12 pb-24 animate-slide-up">
@@ -164,9 +173,17 @@ const Dashboard = ({ products, sales, expenses }: any) => {
         </motion.div>
 
         <motion.div className="bg-surface-container-low p-8 rounded-lg space-y-8 border border-outline-variant/5">
-          <div>
-            <h3 className="font-headline text-xl font-bold text-primary">Mais Vendidos</h3>
-            <p className="font-body text-sm text-on-surface-variant">Top volume deste mês</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="font-headline text-xl font-bold text-primary">Mais Vendidos</h3>
+              <p className="font-body text-sm text-on-surface-variant">{filterEvent === 'all' ? 'Top volume deste mês' : 'Top volume do evento'}</p>
+            </div>
+            <select className="bg-surface-container-high border border-outline-variant/20 rounded-lg p-2 text-[10px] font-label uppercase tracking-widest text-primary focus:outline-none" value={filterEvent} onChange={e=>setFilterEvent(e.target.value)}>
+              <option value="all">Geral / Mês</option>
+              {events.map((ev: any) => (
+                <option key={ev.id} value={ev.id}>{ev.title}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-6">
             {topProducts.length === 0 ? (
@@ -221,10 +238,11 @@ const Dashboard = ({ products, sales, expenses }: any) => {
   );
 };
 
-const PDV = ({ products, addSale }: any) => {
+const PDV = ({ products, events, addSale }: any) => {
   const [cart, setCart] = useState<any>({});
   const [note, setNote] = useState('');
   const [isGatcha, setIsGatcha] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   const cartItems = useMemo(() => Object.entries(cart).map(([id, qty]) => {
       const p = products.find((prod: any) => prod.id === id);
@@ -256,7 +274,7 @@ const PDV = ({ products, addSale }: any) => {
     const items = cartItems.map(i => ({ productId: i.id, name: i.name, qty: i.qty, price: i.price }));
     
     try {
-      await addSale(items, note, isGatcha);
+      await addSale(items, note, isGatcha, selectedEventId || null);
       setCart({}); setNote('');
       addToast('Venda registrada! 🚀', 'success');
     } catch { addToast('Erro ao processar venda.', 'error'); }
@@ -281,11 +299,19 @@ const PDV = ({ products, addSale }: any) => {
           <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2 font-bold opacity-60">Toque nos itens para adicionar</p>
         </div>
         
-        <div className="flex bg-surface-container-high rounded-xl p-1 border border-outline-variant/10 w-full sm:w-auto">
-          <button onClick={() => setIsGatcha(false)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all", !isGatcha ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:text-primary")}>Normal</button>
-          <button onClick={() => setIsGatcha(true)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all flex items-center justify-center gap-2", isGatcha ? "bg-tertiary text-on-tertiary shadow-lg" : "text-on-surface-variant hover:text-tertiary")}>
-            <Sparkles size={12}/> Gatcha
-          </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <select className="bg-surface-container-high border border-outline-variant/20 rounded-xl px-4 py-2 text-[10px] font-label uppercase tracking-widest text-primary focus:outline-none min-w-[150px]" value={selectedEventId} onChange={e=>setSelectedEventId(e.target.value)}>
+            <option value="">Sem Evento</option>
+            {events.map((ev: any) => (
+              <option key={ev.id} value={ev.id}>{ev.title}</option>
+            ))}
+          </select>
+          <div className="flex bg-surface-container-high rounded-xl p-1 border border-outline-variant/10">
+            <button onClick={() => setIsGatcha(false)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all", !isGatcha ? "bg-primary text-on-primary shadow-lg" : "text-on-surface-variant hover:text-primary")}>Normal</button>
+            <button onClick={() => setIsGatcha(true)} className={cn("px-4 py-2 rounded-lg font-label text-[10px] uppercase tracking-widest flex-1 transition-all flex items-center justify-center gap-2", isGatcha ? "bg-tertiary text-on-tertiary shadow-lg" : "text-on-surface-variant hover:text-tertiary")}>
+              <Sparkles size={12}/> Gatcha
+            </button>
+          </div>
         </div>
       </header>
 
@@ -954,6 +980,7 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
   const [prize, setPrize] = useState<any>(null);
   const [looted, setLooted] = useState<any[]>([]);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [isClaimed, setIsClaimed] = useState(false);
 
   const handleOpen = async () => {
     if (chestState !== 'closed') return;
@@ -1076,7 +1103,14 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
                     </div>
                     
                     <div className="pt-4 space-y-4 relative z-10">
-                      <button onClick={() => window.print()} className="w-full py-5 rounded-2xl bg-tertiary text-on-tertiary font-label text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(0,212,236,0.2)] hover:shadow-[0_0_30px_rgba(0,212,236,0.4)] transition-all active:scale-95">Resgatar na Loja</button>
+                      {isClaimed ? (
+                        <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-2xl flex flex-col items-center gap-2 animate-scale-in">
+                          <CheckCircle2 className="text-green-400 w-8 h-8" />
+                          <p className="text-green-400 font-headline font-black text-[10px] uppercase tracking-widest">Resgate Confirmado</p>
+                        </div>
+                      ) : (
+                        <button onClick={() => setIsClaimed(true)} className="w-full py-5 rounded-2xl bg-tertiary text-on-tertiary font-label text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(0,212,236,0.2)] hover:shadow-[0_0_30px_rgba(0,212,236,0.4)] transition-all active:scale-95">Confirmar Resgate</button>
+                      )}
                       <p className="text-[9px] text-center opacity-40 uppercase font-black leading-relaxed px-6">Mostre esta tela selada para o Caio para validar seu tesouro</p>
                     </div>
                   </div>
@@ -1129,8 +1163,8 @@ export default function App() {
       <Header view={view} setView={setView} />
       
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 md:px-6 pt-8">
-        {view === 'dashboard' && <Dashboard products={store.products} sales={store.sales} expenses={store.expenses} />}
-        {view === 'pdv' && <PDV products={store.products} addSale={store.addSale} />}
+        {view === 'dashboard' && <Dashboard products={store.products} sales={store.sales} expenses={store.expenses} events={store.events} />}
+        {view === 'pdv' && <PDV products={store.products} events={store.events} addSale={store.addSale} />}
         {view === 'products' && <Products products={store.products} addProduct={store.addProduct} updateProduct={store.updateProduct} deleteProduct={store.deleteProduct} />}
         {view === 'expenses' && <Expenses expenses={store.expenses} addExpense={store.addExpense} deleteExpense={store.deleteExpense} />}
         {view === 'history' && <SalesHistory sales={store.sales} deleteSale={store.deleteSale} />}
