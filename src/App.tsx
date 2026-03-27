@@ -12,6 +12,7 @@ import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, cu
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
 import chest3Gif from './assets/chest3.gif';
+import armorPng from './assets/armor.png';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
@@ -1092,12 +1093,17 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
   };
 
   if (chestState === 'error') return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center gap-6">
-      <div className="w-20 h-20 bg-red-900/20 rounded-full flex items-center justify-center border border-red-500/30">
-        <AlertTriangle className="text-red-500 w-10 h-10" />
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center gap-12 overflow-hidden">
+      <div className="relative">
+        <motion.div animate={{ opacity: [0, 0.4, 0], scale: [0.95, 1.05, 0.95] }} transition={{ repeat: Infinity, duration: 4 }}
+                    className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+        <motion.img src={armorPng} alt="Shadow Armor" className="w-64 h-64 object-contain relative z-10 grayscale brightness-50"
+                    animate={{ opacity: [0.1, 0.6, 0.1], y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }} />
       </div>
-      <h1 className="text-white font-headline text-3xl font-black uppercase tracking-tighter">Baú Vazio</h1>
-      <p className="text-white/40 font-body text-sm max-w-xs">Não há mais chances restantes ou o baú desapareceu nas sombras.</p>
+      <div className="space-y-4 relative z-20">
+        <h1 className="text-white font-headline text-4xl font-black uppercase tracking-tighter">Baú Vazio</h1>
+        <p className="text-white/40 font-body text-sm max-w-xs mx-auto">Não há mais chances restantes ou o baú desapareceu nas sombras.</p>
+      </div>
     </div>
   );
 
