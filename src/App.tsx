@@ -11,7 +11,6 @@ import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
-import chestGif from './assets/chest.gif';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
@@ -955,26 +954,87 @@ const LootBoxAdmin = ({ prizes, runs, products, addPrize, updatePrize, deletePri
   );
 };
 
-const MedievalChest = ({ open = false, className = '' }: { open?: boolean; className?: string }) => (
-  <svg viewBox="0 0 100 80" className={cn("w-40 h-32 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)]", className)}>
-    {/* Body */}
-    <rect x="10" y="35" width="80" height="40" fill="#4a2c1d" rx="4" />
-    <rect x="10" y="35" width="80" height="4" fill="#361a0f" />
-    {/* Iron Bands */}
-    <rect x="25" y="35" width="8" height="40" fill="#2d2d2d" />
-    <rect x="67" y="35" width="8" height="40" fill="#2d2d2d" />
-    {/* Lid (Animate rotation) */}
-    <motion.g animate={{ rotateX: open ? -110 : 0 }} transition={{ type: 'spring', damping: 12 }} style={{ originY: '35px' }}>
-      <path d="M10 35 C 10 15, 90 15, 90 35 L 90 35 L 10 35 Z" fill="#5d3a24" />
-      {/* Iron Bands on lid */}
-      <rect x="25" y="20" width="8" height="15" fill="#2d2d2d" />
-      <rect x="67" y="20" width="8" height="15" fill="#2d2d2d" />
-      {/* Gold lock area */}
-      <rect x="42" y="32" width="16" height="10" fill="#fbbf24" rx="2" />
-      <circle cx="50" cy="37" r="2" fill="#4a2c1d" />
-    </motion.g>
-  </svg>
-);
+const MedievalChest = ({ state, className = '' }: { state: 'closed' | 'opening' | 'opened'; className?: string }) => {
+  const isOpening = state === 'opening';
+  const isOpened = state === 'opened';
+
+  return (
+    <div className={cn("relative", className)}>
+      {/* Light Rays behind when opened */}
+      <AnimatePresence>
+        {(isOpening || isOpened) && (
+          <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1.5 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 flex items-center justify-center -z-10 blur-xl">
+            <div className="w-1 bg-[#fbbf24] h-60 rotate-0 absolute opacity-40 shadow-[0_0_20px_#fbbf24]" />
+            <div className="w-1 bg-[#fbbf24] h-60 rotate-45 absolute opacity-40 shadow-[0_0_20px_#fbbf24]" />
+            <div className="w-1 bg-[#fbbf24] h-60 rotate-90 absolute opacity-40 shadow-[0_0_20px_#fbbf24]" />
+            <div className="w-1 bg-[#fbbf24] h-60 rotate-[135deg] absolute opacity-40 shadow-[0_0_20px_#fbbf24]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <svg viewBox="0 0 100 80" className="w-56 h-48 drop-shadow-[0_25px_50px_rgba(0,0,0,0.8)] overflow-visible">
+        <defs>
+          <linearGradient id="wood" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#4a2c1d" />
+            <stop offset="100%" stopColor="#2d1a11" />
+          </linearGradient>
+          <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fbbf24" />
+            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#b45309" />
+          </linearGradient>
+        </defs>
+
+        {/* Shadow floor */}
+        <ellipse cx="50" cy="72" rx="35" ry="8" fill="rgba(0,0,0,0.5)" />
+
+        {/* Chest Body */}
+        <motion.g animate={isOpening ? { x: [-1, 1, -1, 1, 0] } : {}} transition={{ repeat: Infinity, duration: 0.1 }}>
+          <rect x="10" y="35" width="80" height="35" fill="url(#wood)" rx="3" />
+          <rect x="10" y="35" width="80" height="3" fill="rgba(0,0,0,0.3)" />
+          
+          {/* Iron Bands Body */}
+          <rect x="25" y="35" width="8" height="35" fill="#2d2d2d" />
+          <rect x="67" y="35" width="8" height="35" fill="#2d2d2d" />
+          
+          {/* Gold Studs */}
+          <circle cx="29" cy="45" r="1.5" fill="url(#gold)" /><circle cx="29" cy="55" r="1.5" fill="url(#gold)" /><circle cx="29" cy="65" r="1.5" fill="url(#gold)" />
+          <circle cx="71" cy="45" r="1.5" fill="url(#gold)" /><circle cx="71" cy="55" r="1.5" fill="url(#gold)" /><circle cx="71" cy="65" r="1.5" fill="url(#gold)" />
+        </motion.g>
+
+        {/* Lid (Top portion) */}
+        <motion.g animate={{ rotateX: (isOpening || isOpened) ? -120 : 0, y: isOpened ? -2 : 0 }} 
+                  style={{ originY: '35px', perspective: '1000px' }} 
+                  transition={{ type: 'spring', stiffness: 200, damping: isOpening ? 5 : 15 }}>
+          <path d="M10 35 C 10 15, 90 15, 90 35 L 90 35 L 10 35 Z" fill="url(#wood)" />
+          <path d="M10 35 C 10 20, 90 20, 90 35 L 90 33 C 90 18, 10 18, 10 33 Z" fill="rgba(255,255,255,0.05)" />
+          
+          {/* Iron Bands Lid */}
+          <rect x="25" y="18" width="8" height="17" fill="#2d2d2d" />
+          <rect x="67" y="18" width="8" height="17" fill="#2d2d2d" />
+          <circle cx="29" cy="22" r="1.5" fill="url(#gold)" />
+          <circle cx="71" cy="22" r="1.5" fill="url(#gold)" />
+
+          {/* Golden Lock */}
+          <g transform="translate(42, 30)">
+            <rect width="16" height="12" fill="url(#gold)" rx="2" stroke="#4a2c1d" strokeWidth="0.5" />
+            <circle cx="8" cy="6" r="2.5" fill="#2d1a11" />
+            <rect x="7" y="6" width="2" height="4" fill="#2d1a11" />
+          </g>
+        </motion.g>
+
+        {/* Prize Glow rising from inside */}
+        {isOpened && (
+          <motion.g initial={{ y: 20, opacity: 0 }} animate={{ y: -30, opacity: 1 }} transition={{ delay: 0.3, duration: 1, type: 'spring' }}>
+            <circle cx="50" cy="35" r="15" fill="rgba(251, 191, 36, 0.4)" filter="blur(8px)" />
+            <motion.text x="50" y="42" textAnchor="middle" fontSize="18" initial={{ scale: 0 }} animate={{ scale: 1.5 }} transition={{ delay: 0.5 }}>✨</motion.text>
+          </motion.g>
+        )}
+      </svg>
+    </div>
+  );
+};
 
 const LootBoxPublic = ({ runId, openLootbox }: any) => {
   const [chestState, setChestState] = useState<'closed' | 'opening' | 'opened' | 'error'>('closed');
@@ -1037,11 +1097,11 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
       <div className="relative w-full max-w-lg flex flex-col items-center gap-12 pt-20">
         <AnimatePresence mode="wait">
           {chestState !== 'opened' ? (
-            <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center gap-8">
-              <motion.div animate={chestState === 'opening' ? { rotate: [0, -4, 4, -4, 4, 0], scale: 1.1 } : { y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.15 : 3 }}
+            <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0, filter: 'blur(20px)' }} className="flex flex-col items-center gap-8">
+              <motion.div animate={chestState === 'opening' ? { rotate: [0, -3, 3, -3, 3, 0], scale: [1, 1.05, 1] } : { y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.1 : 4 }}
                           onClick={handleOpen} className="cursor-pointer relative group">
-                <div className="absolute inset-x-0 top-1/2 h-1 bg-tertiary/20 blur-3xl group-hover:bg-tertiary/40 transition-all scale-[2]" />
-                <img src={chestGif} alt="Chest" className="w-48 h-48 object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
+                <div className="absolute inset-x-0 top-1/2 h-4 w-full bg-tertiary/10 blur-3xl group-hover:bg-tertiary/30 transition-all scale-[3]" />
+                <MedievalChest state={chestState} />
               </motion.div>
               
               <div className="flex flex-col items-center gap-6">
