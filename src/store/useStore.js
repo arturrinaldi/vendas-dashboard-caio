@@ -286,7 +286,7 @@ export const useStore = () => {
     }).eq('id', runId);
     
     // Register as a sale of 5.00
-    await addSale([{ productId: selectedPrize.product_id || '', name: `Lootbox: ${selectedPrize.name}`, qty: 1, price: 5 }], 'Lootbox Win', true);
+    await addSale([{ productId: selectedPrize.product_id || '', name: 'Loot Box', qty: 1, price: 5 }], 'Resultado Loot Box', true);
 
     return { ...selectedPrize, remaining: runData.total_uses - newUsedCount };
   };
