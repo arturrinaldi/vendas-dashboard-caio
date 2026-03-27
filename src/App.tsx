@@ -862,18 +862,21 @@ const LootBoxAdmin = ({ prizes, runs, products, addPrize, updatePrize, deletePri
       <div className="space-y-4">
         <h4 className="font-headline text-lg font-bold text-primary px-1">Ganhos Recentes</h4>
         <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 divide-y divide-outline-variant/10 overflow-hidden">
-          {runs.filter((r:any) => r.status === 'opened').map((r: any) => (
-            <div key={r.id} className="p-4 flex justify-between items-center text-xs">
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{r.prize?.emoji || '🎁'}</span>
-                <div>
-                  <p className="font-bold text-primary">{r.prize?.name || 'Item Desconhecido'}</p>
-                  <p className="text-on-surface-variant font-label text-[10px]">{formatTime(r.opened_at)}</p>
+          {runs.filter((r:any) => r.status === 'opened').map((r: any) => {
+            const prize = prizes.find((p:any) => p.id === r.prize_id);
+            return (
+              <div key={r.id} className="p-4 flex justify-between items-center text-xs">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">{prize?.emoji || '🎁'}</span>
+                  <div>
+                    <p className="font-bold text-primary">{prize?.name || 'Item Desconhecido'}</p>
+                    <p className="text-on-surface-variant font-label text-[10px]">{formatTime(r.opened_at)}</p>
+                  </div>
                 </div>
+                <span className={cn("px-2 py-1 rounded-md font-black uppercase text-[8px] border", rarityColors[prize?.rarity || 'Comum'])}>{prize?.rarity || 'Comum'}</span>
               </div>
-              <span className={cn("px-2 py-1 rounded-md font-black uppercase text-[8px] border", rarityColors[r.prize?.rarity || 'Comum'])}>{r.prize?.rarity || 'Comum'}</span>
-            </div>
-          ))}
+            );
+          })}
           {runs.filter((r:any) => r.status === 'opened').length === 0 && <p className="p-10 text-center text-on-surface-variant italic opacity-40">Nenhum ganho registrado ainda.</p>}
         </div>
       </div>

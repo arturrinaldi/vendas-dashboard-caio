@@ -44,7 +44,7 @@ export const useStore = () => {
         supabase.from('expenses').select('*').order('date', { ascending: false }),
         supabase.from('events').select('*').order('date', { ascending: true }),
         supabase.from('lootbox_prizes').select('*'),
-        supabase.from('lootbox_runs').select('*, prize:prize_id(*)').order('opened_at', { ascending: false }).limit(20)
+        supabase.from('lootbox_runs').select('*').order('opened_at', { ascending: false }).limit(20)
       ]);
 
       if (!pRes.error) setProducts(pRes.data || []);
@@ -280,6 +280,7 @@ export const useStore = () => {
     await supabase.from('lootbox_runs').update({ 
       status: newStatus, 
       used_count: newUsedCount,
+      prize_id: selectedPrize.id,
       opened_at: new Date().toISOString() 
     }).eq('id', runId);
     
