@@ -259,6 +259,17 @@ const PDV = ({ products, addSale }: any) => {
     } catch { addToast('Erro ao processar venda.', 'error'); }
   };
 
+  const groupedProducts = useMemo(() => {
+    const groups: any = {};
+    const sorted = [...products].sort((a: any, b: any) => a.name.localeCompare(b.name));
+    sorted.forEach((p: any) => {
+      const cat = p.category || 'Geral';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [products]);
+
   return (
     <div className="pb-32 animate-slide-up space-y-8 mx-auto max-w-4xl px-2 sm:px-0">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -275,30 +286,40 @@ const PDV = ({ products, addSale }: any) => {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-        {products.map((p: any) => {
-          const inCart = cart[p.id] || 0;
-          const noStock = (p.stock || 0) <= 0;
-          return (
-            <div key={p.id} onClick={() => !noStock && updateQty(p.id, 1)} 
-                 className={cn("bg-surface-container-high p-4 sm:p-6 rounded-2xl flex flex-col items-center gap-4 text-center cursor-pointer transition-all border border-outline-variant/10 relative overflow-hidden group hover:border-primary/30",
-                   inCart ? "border-primary bg-surface-container-low" : "",
-                   noStock ? "opacity-40 grayscale cursor-not-allowed" : ""
-                 )}>
-              {inCart > 0 && (
-                <div className="absolute top-2 right-2 bg-primary text-on-primary font-bold text-xs w-6 h-6 flex items-center justify-center rounded-full font-label shadow-lg animate-scale-in">
-                  {inCart}
-                </div>
-              )}
-              <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">{p.emoji || '📦'}</span>
-              <div className="flex flex-col gap-1 w-full">
-                <span className="font-headline font-bold text-xs text-primary leading-tight line-clamp-1">{p.name}</span>
-                <span className="font-label font-bold text-on-surface-variant text-[10px]">{noStock ? 'ESGOTADO' : `${p.stock||0} em estoque`}</span>
-                <span className="font-label font-black text-tertiary text-sm mt-1">{formatCurrency(p.price)}</span>
-              </div>
+      <div className="flex flex-col gap-10">
+        {groupedProducts.map(([cat, items]: any) => (
+          <div key={cat} className="space-y-4">
+            <h4 className="font-headline text-sm font-bold text-primary/60 uppercase tracking-widest px-1 flex items-center gap-2">
+              <span className="w-1 h-4 bg-primary/30 rounded-full"/>
+              {cat}
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {items.map((p: any) => {
+                const inCart = cart[p.id] || 0;
+                const noStock = (p.stock || 0) <= 0;
+                return (
+                  <div key={p.id} onClick={() => !noStock && updateQty(p.id, 1)} 
+                       className={cn("bg-surface-container-high p-4 sm:p-6 rounded-2xl flex flex-col items-center gap-4 text-center cursor-pointer transition-all border border-outline-variant/10 relative overflow-hidden group hover:border-primary/30",
+                         inCart ? "border-primary bg-surface-container-low" : "",
+                         noStock ? "opacity-40 grayscale cursor-not-allowed" : ""
+                       )}>
+                    {inCart > 0 && (
+                      <div className="absolute top-2 right-2 bg-primary text-on-primary font-bold text-xs w-6 h-6 flex items-center justify-center rounded-full font-label shadow-lg animate-scale-in">
+                        {inCart}
+                      </div>
+                    )}
+                    <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">{p.emoji || '📦'}</span>
+                    <div className="flex flex-col gap-1 w-full">
+                      <span className="font-headline font-bold text-xs text-primary leading-tight line-clamp-1">{p.name}</span>
+                      <span className="font-label font-bold text-on-surface-variant text-[10px]">{noStock ? 'ESGOTADO' : `${p.stock||0} em estoque`}</span>
+                      <span className="font-label font-black text-tertiary text-sm mt-1">{formatCurrency(p.price)}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <AnimatePresence>
@@ -351,17 +372,40 @@ const PDV = ({ products, addSale }: any) => {
 const Products = ({ products, addProduct, updateProduct, deleteProduct }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', price: '', cost: '', stock: '', emoji: '📦' });
+  const [formData, setFormData] = useState({ name: '', price: '', cost: '', stock: '', emoji: '📦', category: 'Geral' });
+
+  const groupedProducts = useMemo(() => {
+    const groups: any = {};
+    const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name));
+    sorted.forEach(p => {
+      const cat = p.category || 'Geral';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [products]);
 
   const handleEdit = (p: any) => {
     setEditId(p.id);
-    setFormData({ name: p.name, price: p.price.toString(), cost: p.cost?.toString() || '', stock: p.stock?.toString() || '', emoji: p.emoji || '📦' });
+    setFormData({ 
+      name: p.name, 
+      price: p.price.toString(), 
+      cost: p.cost?.toString() || '', 
+      stock: p.stock?.toString() || '', 
+      emoji: p.emoji || '📦',
+      category: p.category || 'Geral'
+    });
     setIsOpen(true);
   };
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
-    const data = { ...formData, price: parseFloat(formData.price), cost: parseFloat(formData.cost) || 0, stock: parseInt(formData.stock) || 0 };
+    const data = { 
+      ...formData, 
+      price: parseFloat(formData.price), 
+      cost: parseFloat(formData.cost) || 0, 
+      stock: parseInt(formData.stock) || 0 
+    };
     
     if (editId) {
       updateProduct(editId, data);
@@ -373,7 +417,7 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }: any) =
     
     setIsOpen(false);
     setEditId(null);
-    setFormData({ name: '', price: '', cost: '', stock: '', emoji: '📦' });
+    setFormData({ name: '', price: '', cost: '', stock: '', emoji: '📦', category: 'Geral' });
   };
 
   return (
@@ -388,30 +432,40 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }: any) =
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map((p: any) => (
-          <div key={p.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex justify-between items-center group transition-all hover:bg-surface-container-high">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center text-3xl border border-outline-variant/20 shadow-inner group-hover:bg-surface animate-scale-in">
-                {p.emoji || '📦'}
-              </div>
-              <div className="flex flex-col">
-                <span className="font-headline font-bold text-sm text-primary mb-1">{p.name}</span>
-                <span className="font-label text-xs font-bold text-tertiary">{formatCurrency(p.price)}</span>
-                <span className={cn("font-label text-[10px] uppercase tracking-wider mt-1 font-black", (p.stock || 0) <= 5 ? "text-error" : "text-on-surface-variant")}>Estoque: {p.stock || 0}</span>
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <button className="p-3 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" onClick={() => handleEdit(p)}>
-                <Edit3 size={18} />
-              </button>
-              <button className="p-3 text-on-surface-variant hover:bg-error/10 hover:text-error rounded-xl transition-colors" onClick={() => deleteProduct(p.id)}>
-                <Trash2 size={18} />
-              </button>
+      <div className="flex flex-col gap-10">
+        {groupedProducts.map(([cat, items]: any) => (
+          <div key={cat} className="space-y-4">
+            <h4 className="font-headline text-lg font-bold text-tertiary flex items-center gap-2 px-1">
+              <span className="w-2 h-2 rounded-full bg-tertiary shadow-[0_0_10px_rgba(0,212,236,1)]"/>
+              {cat}
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {items.map((p: any) => (
+                <div key={p.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex justify-between items-center group transition-all hover:bg-surface-container-high">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center text-3xl border border-outline-variant/20 shadow-inner group-hover:bg-surface animate-scale-in">
+                      {p.emoji || '📦'}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-headline font-bold text-sm text-primary mb-1">{p.name}</span>
+                      <span className="font-label text-xs font-bold text-tertiary">{formatCurrency(p.price)}</span>
+                      <span className={cn("font-label text-[10px] uppercase tracking-wider mt-1 font-black", (p.stock || 0) <= 5 ? "text-error" : "text-on-surface-variant")}>Estoque: {p.stock || 0}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <button className="p-3 text-on-surface-variant hover:bg-primary/10 hover:text-primary rounded-xl transition-colors" onClick={() => handleEdit(p)}>
+                      <Edit3 size={18} />
+                    </button>
+                    <button className="p-3 text-on-surface-variant hover:bg-error/10 hover:text-error rounded-xl transition-colors" onClick={() => deleteProduct(p.id)}>
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}
-        {products.length === 0 && <p className="text-on-surface-variant text-sm col-span-full">Nenhum produto cadastrado.</p>}
+        {products.length === 0 && <div className="text-on-surface-variant text-sm col-span-full border-2 border-dashed border-outline-variant/20 py-20 rounded-3xl flex items-center justify-center italic opacity-40">Nenhum produto cadastrado.</div>}
       </div>
 
       <AnimatePresence>
@@ -441,6 +495,11 @@ const Products = ({ products, addProduct, updateProduct, deleteProduct }: any) =
                     <input required type="number" step="0.01" className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors" 
                            value={formData.cost} onChange={e => setFormData({...formData, cost: e.target.value})} placeholder="0.00" />
                   </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Categoria / Unidade</label>
+                  <input required className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm focus:border-tertiary focus:outline-none transition-colors" 
+                         value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} placeholder="Ex: Camisetas, Canecas, Geral..." />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Estoque</label>

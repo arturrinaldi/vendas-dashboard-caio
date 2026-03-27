@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   cost numeric NOT NULL DEFAULT 0,
   stock integer NOT NULL DEFAULT 0,
   emoji text,
+  category text DEFAULT 'Geral',
   "createdAt" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
