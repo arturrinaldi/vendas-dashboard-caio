@@ -56,3 +56,28 @@ CREATE POLICY "Allow public all access on products" ON public.products FOR ALL U
 CREATE POLICY "Allow public all access on sales" ON public.sales FOR ALL USING (true);
 CREATE POLICY "Allow public all access on expenses" ON public.expenses FOR ALL USING (true);
 CREATE POLICY "Allow public all access on events" ON public.events FOR ALL USING (true);
+
+-- 7. Tabelas de LootBox
+CREATE TABLE IF NOT EXISTS public.lootbox_prizes (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  emoji text,
+  rarity text NOT NULL,
+  chance numeric NOT NULL,
+  product_id uuid REFERENCES public.products(id)
+);
+
+CREATE TABLE IF NOT EXISTS public.lootbox_runs (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  status text DEFAULT 'pending',
+  total_uses integer DEFAULT 1,
+  used_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  opened_at timestamp with time zone
+);
+
+ALTER TABLE public.lootbox_prizes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lootbox_runs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public all access on lootbox_prizes" ON public.lootbox_prizes FOR ALL USING (true);
+CREATE POLICY "Allow public all access on lootbox_runs" ON public.lootbox_runs FOR ALL USING (true);
+

@@ -796,12 +796,13 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
   const [editId, setEditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', emoji: '🎁', rarity: 'Comum', chance: '' });
   const [qrRun, setQrRun] = useState<string | null>(null);
+  const [attempts, setAttempts] = useState(1);
 
   const totalChance = prizes.reduce((acc, p) => acc + Number(p.chance), 0);
   const rarityColors = { 'Comum': 'text-green-400', 'Incomum': 'text-yellow-400', 'Raro': 'text-red-400', 'Lendário': 'text-purple-400' };
 
   const handleGenerate = async () => {
-    const run = await generateRun();
+    const run = await generateRun(attempts);
     const url = `${window.location.origin}${window.location.pathname}?run=${run.id}`;
     setQrRun(url);
   };
@@ -823,11 +824,15 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
           <h3 className="font-headline text-3xl font-black text-tertiary uppercase tracking-tighter">Loot Box Admin</h3>
           <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2">{totalChance}% de chances configuradas</p>
         </div>
-        <div className="flex gap-2">
-          <button className="bg-primary text-white px-4 py-3 rounded-xl hover:opacity-90 flex items-center gap-2 text-xs font-bold uppercase tracking-widest" onClick={handleGenerate}>
-            <QRCodeSVG value="test" size={16} /> Gerar QR
+        <div className="flex gap-2 items-center">
+          <div className="flex flex-col gap-1">
+            <label className="text-[8px] uppercase font-black text-tertiary">Giros</label>
+            <input type="number" min="1" max="10" className="w-16 bg-surface-container-high border border-outline-variant/30 rounded-lg p-2 text-xs text-white text-center focus:outline-none" value={attempts} onChange={e=>setAttempts(parseInt(e.target.value)||1)} />
+          </div>
+          <button className="bg-primary text-white h-12 px-6 rounded-xl hover:opacity-90 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest mt-3" onClick={handleGenerate}>
+            <QRCodeSVG value="test" size={14} /> Gerar QR
           </button>
-          <button className="bg-tertiary text-on-tertiary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-tertiary-dim transition-colors transition-all" onClick={() => setIsOpen(true)}>
+          <button className="bg-tertiary text-on-tertiary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-tertiary-dim transition-colors transition-all mt-3" onClick={() => setIsOpen(true)}>
             <PlusCircle size={24} />
           </button>
         </div>
@@ -895,75 +900,120 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
 const LootBoxPublic = ({ runId, openLootbox }: any) => {
   const [chestState, setChestState] = useState<'closed' | 'opening' | 'opened' | 'error'>('closed');
   const [prize, setPrize] = useState<any>(null);
+  const [looted, setLooted] = useState<any[]>([]);
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   const handleOpen = async () => {
     if (chestState !== 'closed') return;
     setChestState('opening');
+    
+    // RPG Shake effect
     setTimeout(async () => {
       try {
         const result = await openLootbox(runId);
         if (result) {
           setPrize(result);
+          setRemaining(result.remaining);
+          setLooted(prev => [result, ...prev]);
           setChestState('opened');
-          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#4ade80', '#facc15', '#f87171', '#c084fc'] });
-        } else {
-          setChestState('error');
-        }
+          
+          if (result.rarity === 'Lendário') {
+            confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 }, colors: ['#c084fc', '#ffd700'] });
+          } else {
+            confetti({ particleCount: 100, spread: 60, origin: { y: 0.6 } });
+          }
+        } else { setChestState('error'); }
       } catch { setChestState('error'); }
-    }, 1500);
+    }, 1200);
   };
 
   const rarityStyles = {
-    'Comum': 'text-green-400 shadow-[0_0_30px_rgba(74,222,128,0.3)] border-green-400/30',
-    'Incomum': 'text-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.3)] border-yellow-400/30',
-    'Raro': 'text-red-400 shadow-[0_0_30px_rgba(248,113,113,0.3)] border-red-400/30',
-    'Lendário': 'text-purple-400 shadow-[0_0_40px_rgba(192,132,252,0.5)] border-purple-400/40'
+    'Comum': 'text-green-400 border-green-400/20 bg-green-950/20 shadow-[0_0_40px_rgba(74,222,128,0.1)]',
+    'Incomum': 'text-yellow-400 border-yellow-400/20 bg-yellow-950/20 shadow-[0_0_40px_rgba(250,204,21,0.1)]',
+    'Raro': 'text-red-400 border-red-400/20 bg-red-950/20 shadow-[0_0_40px_rgba(248,113,113,0.1)]',
+    'Lendário': 'text-purple-400 border-purple-400/40 bg-purple-950/30 shadow-[0_0_60px_rgba(192,132,252,0.3)] animate-pulse'
   };
 
   if (chestState === 'error') return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center gap-6">
-      <AlertTriangle className="text-red-500 w-16 h-16" />
-      <h1 className="text-white font-headline text-2xl font-black uppercase">Chance Expirada</h1>
-      <p className="text-white/40 font-body text-sm">Este QR Code já foi utilizado ou é inválido.</p>
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center p-8 text-center gap-6">
+      <div className="w-20 h-20 bg-red-900/20 rounded-full flex items-center justify-center border border-red-500/30">
+        <AlertTriangle className="text-red-500 w-10 h-10" />
+      </div>
+      <h1 className="text-white font-headline text-3xl font-black uppercase tracking-tighter">Baú Vazio</h1>
+      <p className="text-white/40 font-body text-sm max-w-xs">Não há mais chances restantes ou o baú desapareceu nas sombras.</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center p-4 overflow-hidden">
-      <div className="relative w-full max-w-lg flex flex-col items-center">
+    <div className="min-h-screen bg-[#050506] flex flex-col items-center justify-center p-6 overflow-hidden relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.02),transparent)]" />
+      
+      {/* RPG Header */}
+      <motion.div initial={{ y: -50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute top-12 flex flex-col items-center gap-1 z-10">
+        <h2 className="font-headline text-[10px] uppercase tracking-[0.5em] text-tertiary/60 font-black">Masmorra do Caio</h2>
+        <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-tertiary/40 to-transparent" />
+      </motion.div>
+
+      <div className="relative w-full max-w-lg flex flex-col items-center gap-12 pt-20">
         <AnimatePresence mode="wait">
           {chestState !== 'opened' ? (
-            <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="relative">
-              <motion.div animate={chestState === 'opening' ? { rotate: [0, -5, 5, -5, 5, 0], scale: [1, 1.1, 1] } : {}} transition={{ repeat: chestState === 'opening' ? Infinity : 0, duration: 0.2 }}
-                          onClick={handleOpen} className="cursor-pointer">
-                <div className="text-[140px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] filter grayscale-[0.2] hover:grayscale-0 transition-all">
-                  {chestState === 'opening' ? '🔓' : '📦'}
+            <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center gap-8">
+              <motion.div animate={chestState === 'opening' ? { rotate: [0, -4, 4, -4, 4, 0], y: [0, -10, 0] } : { y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.15 : 3 }}
+                          onClick={handleOpen} className="cursor-pointer relative group">
+                {/* Aura */}
+                <div className="absolute inset-x-0 top-1/2 h-1 bg-tertiary/20 blur-2xl group-hover:bg-tertiary/40 transition-all scale-150" />
+                <div className="text-[160px] filter drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] relative z-10">
+                  {chestState === 'opening' ? '🔓' : '🎁'}
                 </div>
               </motion.div>
-              {chestState === 'closed' && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1.0 }} transition={{ repeat: Infinity, duration: 1, repeatType: 'reverse' }}
-                          className="text-tertiary font-headline font-black text-xs uppercase tracking-[0.3em] mt-8 text-center">Toque para Abrir</motion.p>
-              )}
+              
+              <div className="flex flex-col items-center gap-6">
+                <div className="px-4 py-1.5 rounded-full border border-tertiary/20 bg-tertiary/5 backdrop-blur-md">
+                  <p className="font-label text-xs font-black uppercase tracking-[0.2em] text-tertiary">
+                    {remaining !== null ? `Cargas: ${remaining}` : 'Contém Tesouros'}
+                  </p>
+                </div>
+                {chestState === 'closed' && (
+                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} transition={{ repeat: Infinity, duration: 2, repeatType: 'reverse' }}
+                            className="font-headline font-black text-[10px] uppercase tracking-[0.3em] text-white/50">Toque no Baú para Saquear</motion.p>
+                )}
+              </div>
             </motion.div>
           ) : (
-            <motion.div key="prize" initial={{ scale: 0.5, y: 50, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} className="flex flex-col items-center gap-8">
-              <div className={cn("w-64 h-64 bg-surface-container-high rounded-[3rem] border-2 flex flex-col items-center justify-center p-8 gap-6 transition-all", rarityStyles[prize.rarity])}>
-                <span className="text-8xl drop-shadow-2xl animate-bounce">{prize.emoji || '🎁'}</span>
-                <div className="text-center">
-                  <p className="text-[10px] uppercase tracking-[0.4em] font-black mb-2 opacity-60">Você ganhou!</p>
-                  <h2 className="font-headline text-2xl font-black uppercase leading-tight">{prize.name}</h2>
+            <motion.div key="prize" initial={{ scale: 0.2, y: 100, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }} className="flex flex-col items-center gap-10">
+              <div className={cn("w-72 h-80 rounded-[3rem] border-2 flex flex-col items-center justify-between p-10 relative overflow-hidden", rarityStyles[prize.rarity])}>
+                {/* Shine effect */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-shimmer" />
+                
+                <span className="text-9xl drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-10">{prize.emoji || '🎁'}</span>
+                
+                <div className="text-center z-10 space-y-2">
+                  <p className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Tesouro Encontrado</p>
+                  <h2 className="font-headline text-3xl font-black uppercase tracking-tighter leading-none">{prize.name}</h2>
                 </div>
+
+                <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] z-10 opacity-80">{prize.rarity}</div>
               </div>
-              <div className={cn("px-6 py-2 rounded-full font-label text-[10px] font-black uppercase tracking-[0.2em] border", rarityStyles[prize.rarity])}>
-                Item {prize.rarity}
-              </div>
+
+              {remaining && remaining > 0 ? (
+                <button onClick={() => setChestState('closed')} className="bg-surface-container-high text-white px-10 py-5 rounded-2xl font-label text-[10px] font-black uppercase tracking-[0.3em] border border-outline-variant/20 hover:bg-surface transition-all active:scale-95 shadow-xl">Continuar Saqueando</button>
+              ) : (
+                <p className="font-headline font-black text-[10px] uppercase tracking-[0.3em] text-white/20">Masmorra Limpa</p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-      
-      {chestState === 'opening' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-primary/20 backdrop-blur-sm pointer-events-none" />
+
+      {/* Loot History (Small icons at bottom) */}
+      {looted.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="absolute bottom-10 flex gap-3 p-4 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl">
+          {looted.map((l, i) => (
+            <div key={i} className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-xl border", rarityStyles[l.rarity])}>
+              {l.emoji}
+            </div>
+          ))}
+        </motion.div>
       )}
     </div>
   );

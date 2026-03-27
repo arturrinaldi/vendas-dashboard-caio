@@ -247,8 +247,8 @@ export const useStore = () => {
     });
   };
 
-  const generateLootboxRun = async () => {
-    const run = { id: crypto.randomUUID(), status: 'pending', created_at: new Date().toISOString() };
+  const generateLootboxRun = async (totalUses = 1) => {
+    const run = { id: crypto.randomUUID(), status: 'pending', total_uses: totalUses, used_count: 0, created_at: new Date().toISOString() };
     if (supabase) await supabase.from('lootbox_runs').insert([run]);
     return run;
   };
@@ -258,7 +258,7 @@ export const useStore = () => {
     
     // Check if valid
     const { data: runData } = await supabase.from('lootbox_runs').select('*').eq('id', runId).single();
-    if (!runData || runData.status !== 'pending') return null;
+    if (!runData || runData.used_count >= runData.total_uses) return null;
 
     // Pick random prize
     const activePrizes = lootboxPrizes.filter(p => Number(p.chance) > 0);
@@ -271,12 +271,18 @@ export const useStore = () => {
     }
 
     // Update run
-    await supabase.from('lootbox_runs').update({ status: 'opened', prize_id: selectedPrize.id, opened_at: new Date().toISOString() }).eq('id', runId);
+    const newUsedCount = runData.used_count + 1;
+    const newStatus = newUsedCount >= runData.total_uses ? 'opened' : 'pending';
+    await supabase.from('lootbox_runs').update({ 
+      status: newStatus, 
+      used_count: newUsedCount,
+      opened_at: new Date().toISOString() 
+    }).eq('id', runId);
     
     // Register as a sale of 5.00
     await addSale([{ productId: selectedPrize.product_id || '', name: `Lootbox: ${selectedPrize.name}`, qty: 1, price: 5 }], 'Lootbox Win', true);
 
-    return selectedPrize;
+    return { ...selectedPrize, remaining: runData.total_uses - newUsedCount };
   };
 
   return {
