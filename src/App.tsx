@@ -791,10 +791,10 @@ const BottomNav = ({ view, setView }: any) => (
   </nav>
 );
 
-const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun }: any) => {
+const LootBoxAdmin = ({ prizes, runs, products, addPrize, updatePrize, deletePrize, generateRun }: any) => {
   const [isOpen, setIsOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', emoji: '🎁', rarity: 'Comum', chance: '' });
+  const [formData, setFormData] = useState({ name: '', emoji: '🎁', rarity: 'Comum', chance: '', product_id: '' });
   const [qrRun, setQrRun] = useState<string | null>(null);
   const [attempts, setAttempts] = useState(1);
 
@@ -814,7 +814,7 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
     }
     const data = { ...formData, chance: parseFloat(formData.chance) };
     if (editId) updatePrize(editId, data); else addPrize(data);
-    setIsOpen(false); setEditId(null); setFormData({ name: '', emoji: '🎁', rarity: 'Comum', chance: '' });
+    setIsOpen(false); setEditId(null); setFormData({ name: '', emoji: '🎁', rarity: 'Comum', chance: '', product_id: '' });
   };
 
   return (
@@ -852,11 +852,30 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
               </div>
             </div>
             <div className="flex gap-1">
-              <button className="p-3 text-on-surface-variant hover:text-primary rounded-xl" onClick={() => { setEditId(p.id); setFormData({ name: p.name, emoji: p.emoji, rarity: p.rarity, chance: p.chance.toString() }); setIsOpen(true); }}><Edit3 size={18}/></button>
+              <button className="p-3 text-on-surface-variant hover:text-primary rounded-xl" onClick={() => { setEditId(p.id); setFormData({ name: p.name, emoji: p.emoji, rarity: p.rarity, chance: p.chance.toString(), product_id: p.product_id || '' }); setIsOpen(true); }}><Edit3 size={18}/></button>
               <button className="p-3 text-on-surface-variant hover:text-error rounded-xl" onClick={() => deletePrize(p.id)}><Trash2 size={18}/></button>
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="space-y-4">
+        <h4 className="font-headline text-lg font-bold text-primary px-1">Ganhos Recentes</h4>
+        <div className="bg-surface-container-low rounded-2xl border border-outline-variant/10 divide-y divide-outline-variant/10 overflow-hidden">
+          {runs.filter((r:any) => r.status === 'opened').map((r: any) => (
+            <div key={r.id} className="p-4 flex justify-between items-center text-xs">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{r.prize?.emoji || '🎁'}</span>
+                <div>
+                  <p className="font-bold text-primary">{r.prize?.name || 'Item Desconhecido'}</p>
+                  <p className="text-on-surface-variant font-label text-[10px]">{formatTime(r.opened_at)}</p>
+                </div>
+              </div>
+              <span className={cn("px-2 py-1 rounded-md font-black uppercase text-[8px] border", rarityColors[r.prize?.rarity || 'Comum'])}>{r.prize?.rarity || 'Comum'}</span>
+            </div>
+          ))}
+          {runs.filter((r:any) => r.status === 'opened').length === 0 && <p className="p-10 text-center text-on-surface-variant italic opacity-40">Nenhum ganho registrado ainda.</p>}
+        </div>
       </div>
 
       <AnimatePresence>
@@ -871,6 +890,15 @@ const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun 
                     <option value="Comum">Comum</option><option value="Incomum">Incomum</option><option value="Raro">Raro</option><option value="Lendário">Lendário</option>
                   </select>
                   <input required type="number" step="0.1" className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm font-white" value={formData.chance} onChange={e=>setFormData({...formData, chance: e.target.value})} placeholder="Chance %" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">Vincular Produto (Opcional)</label>
+                  <select className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm text-white" value={formData.product_id} onChange={e=>setFormData({...formData, product_id: e.target.value})}>
+                    <option value="">Nenhum (Apenas nome)</option>
+                    {products.map((p: any) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.stock} em estoque)</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="pt-6 grid grid-cols-2 gap-4">
                   <button type="button" onClick={()=>setIsOpen(false)} className="py-4 rounded-xl border border-outline-variant/30 font-label text-xs uppercase font-bold">Cancelar</button>
@@ -1053,7 +1081,7 @@ export default function App() {
         {view === 'expenses' && <Expenses expenses={store.expenses} addExpense={store.addExpense} deleteExpense={store.deleteExpense} />}
         {view === 'history' && <SalesHistory sales={store.sales} deleteSale={store.deleteSale} />}
         {view === 'calendar' && <CalendarAgenda events={store.events || []} addEvent={store.addEvent} deleteEvent={store.deleteEvent} />}
-        {view === 'lootbox' && <LootBoxAdmin prizes={store.lootboxPrizes} addPrize={store.addLootboxPrize} updatePrize={store.updateLootboxPrize} deletePrize={store.deleteLootboxPrize} generateRun={store.generateLootboxRun} />}
+        {view === 'lootbox' && <LootBoxAdmin prizes={store.lootboxPrizes} runs={store.lootboxRuns} products={store.products} addPrize={store.addLootboxPrize} updatePrize={store.updateLootboxPrize} deletePrize={store.deleteLootboxPrize} generateRun={store.generateLootboxRun} />}
       </main>
 
       <BottomNav view={view} setView={setView} />

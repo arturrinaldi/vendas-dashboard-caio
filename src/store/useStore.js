@@ -9,22 +9,24 @@ export const useStore = () => {
   const [expenses, setExpenses] = useState([]);
   const [events, setEvents] = useState([]);
   const [lootboxPrizes, setLootboxPrizes] = useState([]);
+  const [lootboxRuns, setLootboxRuns] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadLocalData = () => {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) {
-      const { products, sales, expenses, events, lootboxPrizes } = JSON.parse(data);
+      const { products, sales, expenses, events, lootboxPrizes, lootboxRuns } = JSON.parse(data);
       setProducts(products || []);
       setSales(sales || []);
       setExpenses(expenses || []);
       setEvents(events || []);
       setLootboxPrizes(lootboxPrizes || []);
+      setLootboxRuns(lootboxRuns || []);
     }
   };
 
-  const saveLocalData = (p, s, e, ev, lbp) => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev, lootboxPrizes: lbp }));
+  const saveLocalData = (p, s, e, ev, lbp, lbr) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev, lootboxPrizes: lbp, lootboxRuns: lbr }));
   };
 
   const fetchData = useCallback(async () => {
@@ -36,12 +38,13 @@ export const useStore = () => {
     }
 
     try {
-      const [pRes, sRes, eRes, evRes, lbpRes] = await Promise.all([
+      const [pRes, sRes, eRes, evRes, lbpRes, lbrRes] = await Promise.all([
         supabase.from('products').select('*').order('name'),
         supabase.from('sales').select('*').order('date', { ascending: false }),
         supabase.from('expenses').select('*').order('date', { ascending: false }),
         supabase.from('events').select('*').order('date', { ascending: true }),
-        supabase.from('lootbox_prizes').select('*')
+        supabase.from('lootbox_prizes').select('*'),
+        supabase.from('lootbox_runs').select('*, prize:prize_id(*)').order('opened_at', { ascending: false }).limit(20)
       ]);
 
       if (!pRes.error) setProducts(pRes.data || []);
@@ -49,8 +52,9 @@ export const useStore = () => {
       if (!eRes.error) setExpenses(eRes.data || []);
       if (evRes && !evRes.error) setEvents(evRes.data || []);
       if (lbpRes && !lbpRes.error) setLootboxPrizes(lbpRes.data || []);
+      if (lbrRes && !lbrRes.error) setLootboxRuns(lbrRes.data || []);
       
-      saveLocalData(pRes.data, sRes.data, eRes.data, evRes ? evRes.data : [], lbpRes ? lbpRes.data : []);
+      saveLocalData(pRes.data, sRes.data, eRes.data, evRes ? evRes.data : [], lbpRes ? lbpRes.data : [], lbrRes ? lbrRes.data : []);
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase:', err);
       loadLocalData();
@@ -291,6 +295,7 @@ export const useStore = () => {
     expenses,
     events,
     lootboxPrizes,
+    lootboxRuns,
     loading,
     addProduct,
     updateProduct,
