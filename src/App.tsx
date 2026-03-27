@@ -11,6 +11,8 @@ import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
+import { QRCodeSVG } from 'qrcode.react';
+import confetti from 'canvas-confetti';
 
 const Header = ({ view, setView }: any) => (
   <header className="sticky top-0 z-50 flex items-center justify-between px-6 py-4 bg-surface/80 backdrop-blur-xl border-b border-outline-variant/10">
@@ -30,7 +32,8 @@ const Header = ({ view, setView }: any) => (
         { id: 'products', label: 'Estoque' },
         { id: 'expenses', label: 'Custos' },
         { id: 'history', label: 'Histórico' },
-        { id: 'calendar', label: 'Agenda' }
+        { id: 'calendar', label: 'Agenda' },
+        { id: 'lootbox', label: 'Loot Box' }
       ].map((item) => (
         <button 
           key={item.id} 
@@ -771,7 +774,7 @@ const BottomNav = ({ view, setView }: any) => (
       { id: 'products', label: 'Estoque', icon: Palette },
       { id: 'expenses', label: 'Custos', icon: CreditCard },
       { id: 'history', label: 'Histórico', icon: History },
-      { id: 'calendar', label: 'Agenda', icon: CalendarDays }
+      { id: 'lootbox', label: 'Loot', icon: Sparkles }
     ].map((item) => (
       <button 
         key={item.id}
@@ -788,9 +791,197 @@ const BottomNav = ({ view, setView }: any) => (
   </nav>
 );
 
+const LootBoxAdmin = ({ prizes, addPrize, updatePrize, deletePrize, generateRun }: any) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({ name: '', emoji: '🎁', rarity: 'Comum', chance: '' });
+  const [qrRun, setQrRun] = useState<string | null>(null);
+
+  const totalChance = prizes.reduce((acc, p) => acc + Number(p.chance), 0);
+  const rarityColors = { 'Comum': 'text-green-400', 'Incomum': 'text-yellow-400', 'Raro': 'text-red-400', 'Lendário': 'text-purple-400' };
+
+  const handleGenerate = async () => {
+    const run = await generateRun();
+    const url = `${window.location.origin}${window.location.pathname}?run=${run.id}`;
+    setQrRun(url);
+  };
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    if (totalChance + Number(formData.chance) - (editId ? Number(prizes.find(p=>p.id===editId).chance) : 0) > 100) {
+      return addToast('A probabilidade total não pode exceder 100%!', 'error');
+    }
+    const data = { ...formData, chance: parseFloat(formData.chance) };
+    if (editId) updatePrize(editId, data); else addPrize(data);
+    setIsOpen(false); setEditId(null); setFormData({ name: '', emoji: '🎁', rarity: 'Comum', chance: '' });
+  };
+
+  return (
+    <div className="pb-32 animate-slide-up space-y-8 max-w-4xl mx-auto">
+      <header className="flex justify-between items-end">
+        <div>
+          <h3 className="font-headline text-3xl font-black text-tertiary uppercase tracking-tighter">Loot Box Admin</h3>
+          <p className="font-label text-xs text-on-surface-variant uppercase tracking-widest mt-2">{totalChance}% de chances configuradas</p>
+        </div>
+        <div className="flex gap-2">
+          <button className="bg-primary text-white px-4 py-3 rounded-xl hover:opacity-90 flex items-center gap-2 text-xs font-bold uppercase tracking-widest" onClick={handleGenerate}>
+            <QRCodeSVG value="test" size={16} /> Gerar QR
+          </button>
+          <button className="bg-tertiary text-on-tertiary w-12 h-12 flex items-center justify-center rounded-xl hover:bg-tertiary-dim transition-colors transition-all" onClick={() => setIsOpen(true)}>
+            <PlusCircle size={24} />
+          </button>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {prizes.map((p: any) => (
+          <div key={p.id} className="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 flex justify-between items-center group">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-surface-container-high rounded-xl flex items-center justify-center text-3xl border border-outline-variant/20 shadow-inner">
+                {p.emoji || '🎁'}
+              </div>
+              <div className="flex flex-col">
+                <span className="font-headline font-bold text-sm text-primary mb-1">{p.name}</span>
+                <span className={cn("font-label text-[10px] uppercase font-black", rarityColors[p.rarity])}>{p.rarity}</span>
+                <span className="font-label text-[10px] text-on-surface-variant mt-1">{p.chance}% de chance</span>
+              </div>
+            </div>
+            <div className="flex gap-1">
+              <button className="p-3 text-on-surface-variant hover:text-primary rounded-xl" onClick={() => { setEditId(p.id); setFormData({ name: p.name, emoji: p.emoji, rarity: p.rarity, chance: p.chance.toString() }); setIsOpen(true); }}><Edit3 size={18}/></button>
+              <button className="p-3 text-on-surface-variant hover:text-error rounded-xl" onClick={() => deletePrize(p.id)}><Trash2 size={18}/></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="bg-surface-container-high w-full max-w-md p-8 rounded-2xl border border-tertiary/30">
+              <h2 className="font-headline font-bold text-2xl mb-8">{editId ? 'Editar Prêmio' : 'Novo Prêmio'}</h2>
+              <form onSubmit={handleSubmit} className="space-y-4 font-body">
+                <input required className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm" value={formData.name} onChange={e=>setFormData({...formData, name: e.target.value})} placeholder="Nome do Prêmio" />
+                <div className="grid grid-cols-2 gap-4">
+                  <select className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm text-white" value={formData.rarity} onChange={e=>setFormData({...formData, rarity: e.target.value})}>
+                    <option value="Comum">Comum</option><option value="Incomum">Incomum</option><option value="Raro">Raro</option><option value="Lendário">Lendário</option>
+                  </select>
+                  <input required type="number" step="0.1" className="bg-surface-container-lowest border border-outline-variant/30 rounded-lg p-4 text-sm font-white" value={formData.chance} onChange={e=>setFormData({...formData, chance: e.target.value})} placeholder="Chance %" />
+                </div>
+                <div className="pt-6 grid grid-cols-2 gap-4">
+                  <button type="button" onClick={()=>setIsOpen(false)} className="py-4 rounded-xl border border-outline-variant/30 font-label text-xs uppercase font-bold">Cancelar</button>
+                  <button type="submit" className="py-4 bg-tertiary text-on-tertiary rounded-xl font-label text-xs uppercase font-bold">Salvar</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+        {qrRun && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4">
+            <div className="bg-white p-8 rounded-3xl flex flex-col items-center gap-6 shadow-[0_0_100px_rgba(255,255,255,0.2)]">
+              <p className="text-black font-headline font-black text-xl uppercase tracking-tighter">Sua Chance</p>
+              <div className="p-4 bg-white rounded-2xl shadow-inner border-4 border-black/5">
+                <QRCodeSVG value={qrRun} size={256} level="H" includeMargin />
+              </div>
+              <p className="text-black/60 font-label text-[10px] uppercase tracking-widest text-center max-w-[200px]">Mostre este código para o cliente escanear e abrir o prêmio</p>
+              <button onClick={()=>setQrRun(null)} className="mt-4 bg-black text-white px-8 py-4 rounded-2xl font-label text-xs uppercase font-black w-full">Fechar</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const LootBoxPublic = ({ runId, openLootbox }: any) => {
+  const [chestState, setChestState] = useState<'closed' | 'opening' | 'opened' | 'error'>('closed');
+  const [prize, setPrize] = useState<any>(null);
+
+  const handleOpen = async () => {
+    if (chestState !== 'closed') return;
+    setChestState('opening');
+    setTimeout(async () => {
+      try {
+        const result = await openLootbox(runId);
+        if (result) {
+          setPrize(result);
+          setChestState('opened');
+          confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#4ade80', '#facc15', '#f87171', '#c084fc'] });
+        } else {
+          setChestState('error');
+        }
+      } catch { setChestState('error'); }
+    }, 1500);
+  };
+
+  const rarityStyles = {
+    'Comum': 'text-green-400 shadow-[0_0_30px_rgba(74,222,128,0.3)] border-green-400/30',
+    'Incomum': 'text-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.3)] border-yellow-400/30',
+    'Raro': 'text-red-400 shadow-[0_0_30px_rgba(248,113,113,0.3)] border-red-400/30',
+    'Lendário': 'text-purple-400 shadow-[0_0_40px_rgba(192,132,252,0.5)] border-purple-400/40'
+  };
+
+  if (chestState === 'error') return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-8 text-center gap-6">
+      <AlertTriangle className="text-red-500 w-16 h-16" />
+      <h1 className="text-white font-headline text-2xl font-black uppercase">Chance Expirada</h1>
+      <p className="text-white/40 font-body text-sm">Este QR Code já foi utilizado ou é inválido.</p>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0b] flex flex-col items-center justify-center p-4 overflow-hidden">
+      <div className="relative w-full max-w-lg flex flex-col items-center">
+        <AnimatePresence mode="wait">
+          {chestState !== 'opened' ? (
+            <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.2, opacity: 0 }} className="relative">
+              <motion.div animate={chestState === 'opening' ? { rotate: [0, -5, 5, -5, 5, 0], scale: [1, 1.1, 1] } : {}} transition={{ repeat: chestState === 'opening' ? Infinity : 0, duration: 0.2 }}
+                          onClick={handleOpen} className="cursor-pointer">
+                <div className="text-[140px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)] filter grayscale-[0.2] hover:grayscale-0 transition-all">
+                  {chestState === 'opening' ? '🔓' : '📦'}
+                </div>
+              </motion.div>
+              {chestState === 'closed' && (
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1.0 }} transition={{ repeat: Infinity, duration: 1, repeatType: 'reverse' }}
+                          className="text-tertiary font-headline font-black text-xs uppercase tracking-[0.3em] mt-8 text-center">Toque para Abrir</motion.p>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div key="prize" initial={{ scale: 0.5, y: 50, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} className="flex flex-col items-center gap-8">
+              <div className={cn("w-64 h-64 bg-surface-container-high rounded-[3rem] border-2 flex flex-col items-center justify-center p-8 gap-6 transition-all", rarityStyles[prize.rarity])}>
+                <span className="text-8xl drop-shadow-2xl animate-bounce">{prize.emoji || '🎁'}</span>
+                <div className="text-center">
+                  <p className="text-[10px] uppercase tracking-[0.4em] font-black mb-2 opacity-60">Você ganhou!</p>
+                  <h2 className="font-headline text-2xl font-black uppercase leading-tight">{prize.name}</h2>
+                </div>
+              </div>
+              <div className={cn("px-6 py-2 rounded-full font-label text-[10px] font-black uppercase tracking-[0.2em] border", rarityStyles[prize.rarity])}>
+                Item {prize.rarity}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {chestState === 'opening' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 bg-primary/20 backdrop-blur-sm pointer-events-none" />
+      )}
+    </div>
+  );
+};
+
 export default function App() {
   const [view, setView] = useState('dashboard');
   const store = useStore() as any;
+
+  // Handle Public LootBox View
+  const runId = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('run');
+  }, []);
+
+  if (runId) {
+    return <LootBoxPublic runId={runId} openLootbox={store.openLootbox} />;
+  }
 
   if (store.loading) {
     return (
@@ -812,6 +1003,7 @@ export default function App() {
         {view === 'expenses' && <Expenses expenses={store.expenses} addExpense={store.addExpense} deleteExpense={store.deleteExpense} />}
         {view === 'history' && <SalesHistory sales={store.sales} deleteSale={store.deleteSale} />}
         {view === 'calendar' && <CalendarAgenda events={store.events || []} addEvent={store.addEvent} deleteEvent={store.deleteEvent} />}
+        {view === 'lootbox' && <LootBoxAdmin prizes={store.lootboxPrizes} addPrize={store.addLootboxPrize} updatePrize={store.updateLootboxPrize} deletePrize={store.deleteLootboxPrize} generateRun={store.generateLootboxRun} />}
       </main>
 
       <BottomNav view={view} setView={setView} />
@@ -819,3 +1011,4 @@ export default function App() {
     </div>
   );
 }
+

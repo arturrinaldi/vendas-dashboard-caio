@@ -8,21 +8,23 @@ export const useStore = () => {
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [events, setEvents] = useState([]);
+  const [lootboxPrizes, setLootboxPrizes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadLocalData = () => {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) {
-      const { products, sales, expenses, events } = JSON.parse(data);
+      const { products, sales, expenses, events, lootboxPrizes } = JSON.parse(data);
       setProducts(products || []);
       setSales(sales || []);
       setExpenses(expenses || []);
       setEvents(events || []);
+      setLootboxPrizes(lootboxPrizes || []);
     }
   };
 
-  const saveLocalData = (p, s, e, ev) => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev }));
+  const saveLocalData = (p, s, e, ev, lbp) => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev, lootboxPrizes: lbp }));
   };
 
   const fetchData = useCallback(async () => {
@@ -34,19 +36,21 @@ export const useStore = () => {
     }
 
     try {
-      const [pRes, sRes, eRes, evRes] = await Promise.all([
+      const [pRes, sRes, eRes, evRes, lbpRes] = await Promise.all([
         supabase.from('products').select('*').order('name'),
         supabase.from('sales').select('*').order('date', { ascending: false }),
         supabase.from('expenses').select('*').order('date', { ascending: false }),
-        supabase.from('events').select('*').order('date', { ascending: true })
+        supabase.from('events').select('*').order('date', { ascending: true }),
+        supabase.from('lootbox_prizes').select('*')
       ]);
 
       if (!pRes.error) setProducts(pRes.data || []);
       if (!sRes.error) setSales(sRes.data || []);
       if (!eRes.error) setExpenses(eRes.data || []);
       if (evRes && !evRes.error) setEvents(evRes.data || []);
+      if (lbpRes && !lbpRes.error) setLootboxPrizes(lbpRes.data || []);
       
-      saveLocalData(pRes.data, sRes.data, eRes.data, evRes ? evRes.data : []);
+      saveLocalData(pRes.data, sRes.data, eRes.data, evRes ? evRes.data : [], lbpRes ? lbpRes.data : []);
     } catch (err) {
       console.error('Erro ao carregar dados do Supabase:', err);
       loadLocalData();
@@ -211,11 +215,76 @@ export const useStore = () => {
     });
   };
 
+  // LootBox
+  const addLootboxPrize = async (prize) => {
+    let newPrize = { ...prize, id: crypto.randomUUID() };
+    if (supabase) {
+      const { data, error } = await supabase.from('lootbox_prizes').insert([prize]).select();
+      if (!error) newPrize = data[0];
+    }
+    setLootboxPrizes(prev => {
+      const next = [...prev, newPrize];
+      saveLocalData(products, sales, expenses, events, next);
+      return next;
+    });
+  };
+
+  const updateLootboxPrize = async (id, changes) => {
+    if (supabase) await supabase.from('lootbox_prizes').update(changes).eq('id', id);
+    setLootboxPrizes(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...changes } : p);
+      saveLocalData(products, sales, expenses, events, next);
+      return next;
+    });
+  };
+
+  const deleteLootboxPrize = async (id) => {
+    if (supabase) await supabase.from('lootbox_prizes').delete().eq('id', id);
+    setLootboxPrizes(prev => {
+      const next = prev.filter(p => p.id !== id);
+      saveLocalData(products, sales, expenses, events, next);
+      return next;
+    });
+  };
+
+  const generateLootboxRun = async () => {
+    const run = { id: crypto.randomUUID(), status: 'pending', created_at: new Date().toISOString() };
+    if (supabase) await supabase.from('lootbox_runs').insert([run]);
+    return run;
+  };
+
+  const openLootbox = async (runId) => {
+    if (!supabase) return null;
+    
+    // Check if valid
+    const { data: runData } = await supabase.from('lootbox_runs').select('*').eq('id', runId).single();
+    if (!runData || runData.status !== 'pending') return null;
+
+    // Pick random prize
+    const activePrizes = lootboxPrizes.filter(p => Number(p.chance) > 0);
+    const totalChance = activePrizes.reduce((s, p) => s + Number(p.chance), 0);
+    let rand = Math.random() * totalChance;
+    let selectedPrize = activePrizes[0];
+    for (const p of activePrizes) {
+      if (rand < Number(p.chance)) { selectedPrize = p; break; }
+      rand -= Number(p.chance);
+    }
+
+    // Update run
+    await supabase.from('lootbox_runs').update({ status: 'opened', prize_id: selectedPrize.id, opened_at: new Date().toISOString() }).eq('id', runId);
+    
+    // Register as a sale of 5.00
+    await addSale([{ productId: selectedPrize.product_id || '', name: `Lootbox: ${selectedPrize.name}`, qty: 1, price: 5 }], 'Lootbox Win', true);
+
+    return selectedPrize;
+  };
+
   return {
     products,
     sales,
     expenses,
     events,
+    lootboxPrizes,
     loading,
     addProduct,
     updateProduct,
@@ -226,6 +295,11 @@ export const useStore = () => {
     deleteExpense,
     addEvent,
     deleteEvent,
+    addLootboxPrize,
+    updateLootboxPrize,
+    deleteLootboxPrize,
+    generateLootboxRun,
+    openLootbox,
     refresh: fetchData
   };
 };
