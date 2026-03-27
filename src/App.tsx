@@ -11,7 +11,7 @@ import { useStore } from './store/useStore';
 import { formatCurrency, formatDate, formatTime, getLast6Months, getMonthKey, currentMonthKey, addToast } from './utils/format';
 import ToastContainer from './components/ToastContainer';
 import logoUrl from './assets/logo.png';
-import chest2Gif from './assets/chest2.gif';
+import chest3Gif from './assets/chest3.gif';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 
@@ -1120,9 +1120,15 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
                 <div className="absolute inset-x-0 top-1/2 h-4 w-full bg-tertiary/10 blur-3xl group-hover:bg-tertiary/30 transition-all scale-[3]" />
                 
                 {chestState === 'closed' ? (
-                  <MedievalChest state="closed" />
+                  <div className="flex flex-col items-center gap-8">
+                    <MedievalChest state="closed" />
+                  </div>
                 ) : (
-                  <img src={`${chest2Gif}?t=${Date.now()}`} alt="Opening Chest" className="w-56 h-48 object-contain relative z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.8)]" />
+                  <div className="fixed inset-0 z-0 bg-black animate-fade-in">
+                    <img src={`${chest3Gif}?t=${Date.now()}`} alt="Opening Chest" className="w-full h-full object-cover opacity-80" />
+                    {/* Dark gradient overlay to keep UI readable */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
+                  </div>
                 )}
               </motion.div>
               
@@ -1139,23 +1145,26 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
               </div>
             </motion.div>
           ) : (
-            <motion.div key="prize" initial={{ scale: 0.2, y: 100, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }} className="flex flex-col items-center gap-10 w-full">
+            <motion.div key="prize" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-10 w-full">
               {remaining && remaining > 0 ? (
                 <>
-                  <div className={cn("w-72 h-80 rounded-[3rem] border-2 flex flex-col items-center justify-between p-10 relative overflow-hidden", rarityStyles[prize.rarity])}>
-                    {/* Shine effect */}
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-shimmer" />
-                    
-                    <span className="text-9xl drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-10">{prize.emoji || '🎁'}</span>
-                    
-                    <div className="text-center z-10 space-y-2">
-                      <p className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Tesouro Encontrado</p>
-                      <h2 className="font-headline text-3xl font-black uppercase tracking-tighter leading-none">{prize.name}</h2>
-                    </div>
+                  <div className="relative flex flex-col items-center">
+                    <motion.div initial={{ scale: 0, rotate: -15, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} 
+                                className={cn("w-72 h-96 rounded-[3rem] border-2 flex flex-col items-center justify-between p-10 relative overflow-hidden z-20 backdrop-blur-md shadow-[0_40px_100px_rgba(0,0,0,0.8)]", rarityStyles[prize.rarity])}>
+                      {/* Shine effect */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shimmer" />
+                      
+                      <div className="space-y-1 text-center z-10 pt-4">
+                        <p className="text-[8px] uppercase tracking-[0.4em] font-black opacity-60">Saque Épico</p>
+                        <h2 className="font-headline text-3xl font-black uppercase tracking-tighter leading-none">{prize.name}</h2>
+                      </div>
 
-                    <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] z-10 opacity-80">{prize.rarity}</div>
+                      <span className="text-[140px] drop-shadow-[0_15px_40px_rgba(0,0,0,0.6)] z-10 animate-bounce-slow">{prize.emoji || '🎁'}</span>
+                      
+                      <div className="font-label text-[11px] font-black uppercase tracking-[0.3em] z-10 px-6 py-2 rounded-full border border-current/20 bg-black/20 mb-4">{prize.rarity}</div>
+                    </motion.div>
                   </div>
-                  <button onClick={() => setChestState('closed')} className="bg-surface-container-high text-white px-10 py-5 rounded-2xl font-label text-[10px] font-black uppercase tracking-[0.3em] border border-outline-variant/20 hover:bg-surface transition-all active:scale-95 shadow-xl">Continuar Saqueando</button>
+                  <button onClick={() => setChestState('closed')} className="bg-white text-black px-12 py-5 rounded-2xl font-label text-[12px] font-black uppercase tracking-[0.3em] hover:scale-105 transition-all active:scale-95 shadow-2xl z-30">Abrir Próximo</button>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-6 animate-slide-up w-full max-w-sm">

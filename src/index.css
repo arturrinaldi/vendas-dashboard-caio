@@ -64,6 +64,18 @@
     100% { background-position: 0% 50% }
   }
   --animate-gradient-x: gradient-x 3s ease infinite;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  --animate-fade-in: fade-in 0.5s ease-out;
+
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+    50% { transform: none; animation-timing-function: cubic-bezier(0,0,0.2,1); }
+  }
+  --animate-bounce-slow: bounce-slow 3s infinite;
 }
 
 .bg-size-200 {
@@ -72,6 +84,14 @@
 
 .animate-gradient-x {
   animation: var(--animate-gradient-x);
+}
+
+.animate-fade-in {
+  animation: var(--animate-fade-in);
+}
+
+.animate-bounce-slow {
+  animation: var(--animate-bounce-slow);
 }
 
 @layer base {
