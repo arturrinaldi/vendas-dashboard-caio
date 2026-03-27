@@ -925,6 +925,27 @@ const LootBoxAdmin = ({ prizes, runs, products, addPrize, updatePrize, deletePri
   );
 };
 
+const MedievalChest = ({ open = false, className = '' }: { open?: boolean; className?: string }) => (
+  <svg viewBox="0 0 100 80" className={cn("w-40 h-32 drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)]", className)}>
+    {/* Body */}
+    <rect x="10" y="35" width="80" height="40" fill="#4a2c1d" rx="4" />
+    <rect x="10" y="35" width="80" height="4" fill="#361a0f" />
+    {/* Iron Bands */}
+    <rect x="25" y="35" width="8" height="40" fill="#2d2d2d" />
+    <rect x="67" y="35" width="8" height="40" fill="#2d2d2d" />
+    {/* Lid (Animate rotation) */}
+    <motion.g animate={{ rotateX: open ? -110 : 0 }} transition={{ type: 'spring', damping: 12 }} style={{ originY: '35px' }}>
+      <path d="M10 35 C 10 15, 90 15, 90 35 L 90 35 L 10 35 Z" fill="#5d3a24" />
+      {/* Iron Bands on lid */}
+      <rect x="25" y="20" width="8" height="15" fill="#2d2d2d" />
+      <rect x="67" y="20" width="8" height="15" fill="#2d2d2d" />
+      {/* Gold lock area */}
+      <rect x="42" y="32" width="16" height="10" fill="#fbbf24" rx="2" />
+      <circle cx="50" cy="37" r="2" fill="#4a2c1d" />
+    </motion.g>
+  </svg>
+);
+
 const LootBoxPublic = ({ runId, openLootbox }: any) => {
   const [chestState, setChestState] = useState<'closed' | 'opening' | 'opened' | 'error'>('closed');
   const [prize, setPrize] = useState<any>(null);
@@ -986,64 +1007,75 @@ const LootBoxPublic = ({ runId, openLootbox }: any) => {
         <AnimatePresence mode="wait">
           {chestState !== 'opened' ? (
             <motion.div key="chest" initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 1.5, opacity: 0 }} className="flex flex-col items-center gap-8">
-              <motion.div animate={chestState === 'opening' ? { rotate: [0, -4, 4, -4, 4, 0], y: [0, -10, 0] } : { y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.15 : 3 }}
+              <motion.div animate={chestState === 'opening' ? { rotate: [0, -4, 4, -4, 4, 0], y: [0, -5, 0] } : { y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: chestState === 'opening' ? 0.15 : 3 }}
                           onClick={handleOpen} className="cursor-pointer relative group">
                 {/* Aura */}
-                <div className="absolute inset-x-0 top-1/2 h-1 bg-tertiary/20 blur-2xl group-hover:bg-tertiary/40 transition-all scale-150" />
-                <div className="text-[160px] filter drop-shadow-[0_0_40px_rgba(0,0,0,0.8)] relative z-10">
-                  {chestState === 'opening' ? '🔓' : '🎁'}
-                </div>
+                <div className="absolute inset-x-0 top-1/2 h-1 bg-tertiary/20 blur-3xl group-hover:bg-tertiary/40 transition-all scale-[2]" />
+                <MedievalChest open={chestState === 'opening'} className="relative z-10" />
               </motion.div>
               
               <div className="flex flex-col items-center gap-6">
-                <div className="px-4 py-1.5 rounded-full border border-tertiary/20 bg-tertiary/5 backdrop-blur-md">
-                  <p className="font-label text-xs font-black uppercase tracking-[0.2em] text-tertiary">
+                <div className="px-6 py-2 rounded-full border-2 border-tertiary/20 bg-tertiary/5 backdrop-blur-md">
+                  <p className="font-label text-sm font-black uppercase tracking-[0.2em] text-tertiary">
                     {remaining !== null ? `Cargas: ${remaining}` : 'Contém Tesouros'}
                   </p>
                 </div>
                 {chestState === 'closed' && (
                   <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} transition={{ repeat: Infinity, duration: 2, repeatType: 'reverse' }}
-                            className="font-headline font-black text-[10px] uppercase tracking-[0.3em] text-white/50">Toque no Baú para Saquear</motion.p>
+                            className="font-headline font-black text-xs uppercase tracking-[0.3em] text-white/50">Toque para Saquear</motion.p>
                 )}
               </div>
             </motion.div>
           ) : (
-            <motion.div key="prize" initial={{ scale: 0.2, y: 100, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }} className="flex flex-col items-center gap-10">
-              <div className={cn("w-72 h-80 rounded-[3rem] border-2 flex flex-col items-center justify-between p-10 relative overflow-hidden", rarityStyles[prize.rarity])}>
-                {/* Shine effect */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-shimmer" />
-                
-                <span className="text-9xl drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-10">{prize.emoji || '🎁'}</span>
-                
-                <div className="text-center z-10 space-y-2">
-                  <p className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Tesouro Encontrado</p>
-                  <h2 className="font-headline text-3xl font-black uppercase tracking-tighter leading-none">{prize.name}</h2>
-                </div>
-
-                <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] z-10 opacity-80">{prize.rarity}</div>
-              </div>
-
+            <motion.div key="prize" initial={{ scale: 0.2, y: 100, rotate: -10, opacity: 0 }} animate={{ scale: 1, y: 0, rotate: 0, opacity: 1 }} className="flex flex-col items-center gap-10 w-full">
               {remaining && remaining > 0 ? (
-                <button onClick={() => setChestState('closed')} className="bg-surface-container-high text-white px-10 py-5 rounded-2xl font-label text-[10px] font-black uppercase tracking-[0.3em] border border-outline-variant/20 hover:bg-surface transition-all active:scale-95 shadow-xl">Continuar Saqueando</button>
+                <>
+                  <div className={cn("w-72 h-80 rounded-[3rem] border-2 flex flex-col items-center justify-between p-10 relative overflow-hidden", rarityStyles[prize.rarity])}>
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent animate-shimmer" />
+                    
+                    <span className="text-9xl drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)] z-10">{prize.emoji || '🎁'}</span>
+                    
+                    <div className="text-center z-10 space-y-2">
+                      <p className="text-[9px] uppercase tracking-[0.4em] font-black opacity-40">Tesouro Encontrado</p>
+                      <h2 className="font-headline text-3xl font-black uppercase tracking-tighter leading-none">{prize.name}</h2>
+                    </div>
+
+                    <div className="font-label text-[10px] font-black uppercase tracking-[0.2em] z-10 opacity-80">{prize.rarity}</div>
+                  </div>
+                  <button onClick={() => setChestState('closed')} className="bg-surface-container-high text-white px-10 py-5 rounded-2xl font-label text-[10px] font-black uppercase tracking-[0.3em] border border-outline-variant/20 hover:bg-surface transition-all active:scale-95 shadow-xl">Continuar Saqueando</button>
+                </>
               ) : (
-                <div className="flex flex-col items-center gap-6 animate-slide-up">
-                  <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                  <p className="font-headline font-black text-xs uppercase tracking-[0.4em] text-tertiary">Masmorra Limpa</p>
-                  <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 w-full max-w-sm space-y-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-center opacity-40">Seus Tesouros</p>
-                    <div className="space-y-3">
+                <div className="flex flex-col items-center gap-6 animate-slide-up w-full max-w-sm">
+                  <div className="w-full flex flex-col items-center gap-2 mb-4">
+                    <p className="font-headline font-black text-xs uppercase tracking-[0.5em] text-tertiary">Saque Concluído</p>
+                    <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-tertiary/30 to-transparent" />
+                  </div>
+                  
+                  <div className="bg-[#0f0f11] backdrop-blur-3xl rounded-[2.5rem] p-8 border border-white/10 w-full space-y-6 shadow-2xl relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-center opacity-40 relative z-10">Inventário do Saque</p>
+                    
+                    <div className="space-y-3 relative z-10 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                       {looted.map((l, i) => (
-                        <div key={i} className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xl">{l.emoji}</span>
-                            <span className="font-headline font-bold text-xs uppercase tracking-tight text-white">{l.name}</span>
+                        <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.1 }}
+                                   key={i} className="flex items-center justify-between bg-black/40 p-4 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                          <div className="flex items-center gap-4">
+                            <span className="text-2xl drop-shadow-md">{l.emoji}</span>
+                            <div className="flex flex-col">
+                              <span className="font-headline font-bold text-xs uppercase tracking-tight text-white">{l.name}</span>
+                              <span className={cn("text-[6px] font-black uppercase tracking-widest", rarityStyles[l.rarity].split(' ')[0])}>{l.rarity}</span>
+                            </div>
                           </div>
-                          <span className={cn("text-[8px] font-black uppercase px-2 py-1 rounded border", rarityStyles[l.rarity])}>{l.rarity}</span>
-                        </div>
+                          <Check size={14} className="text-tertiary opacity-40" />
+                        </motion.div>
                       ))}
                     </div>
-                    <button onClick={() => window.print()} className="w-full py-4 rounded-2xl bg-white text-black font-label text-[10px] font-black uppercase tracking-[0.2em] mt-4 hover:bg-tertiary transition-colors">Resgatar Prêmios</button>
-                    <p className="text-[8px] text-center opacity-30 uppercase font-bold px-4">Mostre esta tela para o Caio para validar seu saque</p>
+                    
+                    <div className="pt-4 space-y-4 relative z-10">
+                      <button onClick={() => window.print()} className="w-full py-5 rounded-2xl bg-tertiary text-on-tertiary font-label text-xs font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(0,212,236,0.2)] hover:shadow-[0_0_30px_rgba(0,212,236,0.4)] transition-all active:scale-95">Resgatar na Loja</button>
+                      <p className="text-[9px] text-center opacity-40 uppercase font-black leading-relaxed px-6">Mostre esta tela selada para o Caio para validar seu tesouro</p>
+                    </div>
                   </div>
                 </div>
               )}
