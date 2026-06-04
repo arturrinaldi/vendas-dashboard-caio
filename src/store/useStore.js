@@ -26,7 +26,14 @@ export const useStore = () => {
   };
 
   const saveLocalData = (p, s, e, ev, lbp, lbr) => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ products: p, sales: s, expenses: e, events: ev, lootboxPrizes: lbp, lootboxRuns: lbr }));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+      products: p !== undefined ? p : products,
+      sales: s !== undefined ? s : sales,
+      expenses: e !== undefined ? e : expenses,
+      events: ev !== undefined ? ev : events,
+      lootboxPrizes: lbp !== undefined ? lbp : lootboxPrizes,
+      lootboxRuns: lbr !== undefined ? lbr : lootboxRuns
+    }));
   };
 
   const fetchData = useCallback(async () => {
@@ -222,32 +229,50 @@ export const useStore = () => {
 
   // LootBox
   const addLootboxPrize = async (prize) => {
-    let newPrize = { ...prize, id: crypto.randomUUID() };
+    const sanitizedPrize = { ...prize };
+    if (sanitizedPrize.product_id === '') {
+      sanitizedPrize.product_id = null;
+    }
+    let newPrize = { ...sanitizedPrize, id: crypto.randomUUID() };
     if (supabase) {
-      const { data, error } = await supabase.from('lootbox_prizes').insert([prize]).select();
-      if (!error) newPrize = data[0];
+      const { data, error } = await supabase.from('lootbox_prizes').insert([sanitizedPrize]).select();
+      if (!error && data) {
+        newPrize = data[0];
+      } else if (error) {
+        console.error('Erro ao adicionar prêmio no Supabase:', error);
+      }
     }
     setLootboxPrizes(prev => {
       const next = [...prev, newPrize];
-      saveLocalData(products, sales, expenses, events, next);
+      saveLocalData(products, sales, expenses, events, next, lootboxRuns);
       return next;
     });
   };
 
   const updateLootboxPrize = async (id, changes) => {
-    if (supabase) await supabase.from('lootbox_prizes').update(changes).eq('id', id);
+    const sanitizedChanges = { ...changes };
+    if (sanitizedChanges.product_id === '') {
+      sanitizedChanges.product_id = null;
+    }
+    if (supabase) {
+      const { error } = await supabase.from('lootbox_prizes').update(sanitizedChanges).eq('id', id);
+      if (error) console.error('Erro ao atualizar prêmio no Supabase:', error);
+    }
     setLootboxPrizes(prev => {
-      const next = prev.map(p => p.id === id ? { ...p, ...changes } : p);
-      saveLocalData(products, sales, expenses, events, next);
+      const next = prev.map(p => p.id === id ? { ...p, ...sanitizedChanges } : p);
+      saveLocalData(products, sales, expenses, events, next, lootboxRuns);
       return next;
     });
   };
 
   const deleteLootboxPrize = async (id) => {
-    if (supabase) await supabase.from('lootbox_prizes').delete().eq('id', id);
+    if (supabase) {
+      const { error } = await supabase.from('lootbox_prizes').delete().eq('id', id);
+      if (error) console.error('Erro ao deletar prêmio no Supabase:', error);
+    }
     setLootboxPrizes(prev => {
       const next = prev.filter(p => p.id !== id);
-      saveLocalData(products, sales, expenses, events, next);
+      saveLocalData(products, sales, expenses, events, next, lootboxRuns);
       return next;
     });
   };
