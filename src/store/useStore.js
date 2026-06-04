@@ -103,8 +103,14 @@ export const useStore = () => {
 
   const deleteProduct = async (id) => {
     if (supabase) {
+      await supabase.from('lootbox_prizes').update({ product_id: null }).eq('product_id', id);
       await supabase.from('products').delete().eq('id', id);
     }
+    setLootboxPrizes(prev => {
+      const next = prev.map(p => p.product_id === id ? { ...p, product_id: null } : p);
+      saveLocalData(products, sales, expenses, events, next, lootboxRuns);
+      return next;
+    });
     setProducts(prev => {
       const next = prev.filter(p => p.id !== id);
       saveLocalData(next, sales, expenses, events);
@@ -267,6 +273,7 @@ export const useStore = () => {
 
   const deleteLootboxPrize = async (id) => {
     if (supabase) {
+      await supabase.from('lootbox_runs').update({ prize_id: null }).eq('prize_id', id);
       const { error } = await supabase.from('lootbox_prizes').delete().eq('id', id);
       if (error) console.error('Erro ao deletar prêmio no Supabase:', error);
     }
