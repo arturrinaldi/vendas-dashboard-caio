@@ -23,7 +23,9 @@ const Header = ({ view, setView }: any) => (
         <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
           <span className="font-headline font-black text-surface text-xs">C</span>
         </div>
-        <h1 className="font-headline font-black text-2xl tracking-widest uppercase text-primary">CaioAD</h1>
+        <h1 className="font-headline font-black text-2xl tracking-widest uppercase text-primary">
+          CaioAD <span className="text-[10px] text-tertiary/60 font-mono tracking-normal font-normal lowercase relative -top-2">v1.1</span>
+        </h1>
       </div>
     </div>
     
